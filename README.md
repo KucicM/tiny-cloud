@@ -1,11 +1,12 @@
 
 # tiny-cloud
 
-CLI wrapper to run simple tasks on a cloud
+CLI wrapper to run a simple tasks on a cloud
 
 ## Install
 
 prerequisites:
+
 Docker:
 
 ```text

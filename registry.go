@@ -11,7 +11,6 @@ import (
 type ContainerRepository interface {
 	Push(imgName string)
 	DeleteImgs()
-	Destroy()
 }
 
 type descRepoResp struct {
