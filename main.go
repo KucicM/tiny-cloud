@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
+	"strings"
 )
 
 const path = "terraform"
@@ -30,6 +33,8 @@ func main() {
 		return
 	}
 
+	profileSetup()
+
 	log.Println("Setting up infra")
 	cmd := `terraform -chdir=%s apply -auto-approve -var app=%s -var repo_name=%s`
 	out, _ := run(fmt.Sprintf(cmd, path, profile, repoName))
@@ -37,4 +42,31 @@ func main() {
 
 	log.Println(img)
 	registry.Push(*img)
+}
+
+func profileSetup() {
+	profileExists := false
+	out, _ := run("aws configure list-profiles")
+	for _, p := range strings.Split(string(out), "\n") {
+		if p == profile {
+			profileExists = true
+			break
+		}
+	}
+
+	// setup the profile
+	if !profileExists {
+		log.Printf("Setup the new user named '%s' on %s\n", profile, "aws TODO")
+		cmd := exec.Command("aws", "configure", "--profile", profile)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		if err := cmd.Run(); err != nil {
+			log.Printf("Failed to run aws config %s\n", err)
+			os.Exit(1)
+		}
+	}
+
+	// set the output
+	run(fmt.Sprintf("aws configure set output json --profile %s", profile))
 }

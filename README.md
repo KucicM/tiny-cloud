@@ -33,12 +33,6 @@ Add permissions:
 
 - AmazonEC2ContainerRegistryFullAccess
 
-Run:
-
-``` bash
-aws configure --profile tiny-cloud
-```
-
 ## Run
 
 Build docker image:
