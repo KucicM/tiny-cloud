@@ -13,7 +13,7 @@ var debug = false
 func main() {
 
 	destroy := flag.Bool("destroy", false, "should delete everything")
-	img := flag.String("image", "", "image name to run")
+	// img := flag.String("image", "", "image name to run")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
 	flag.Parse()
 
@@ -23,12 +23,17 @@ func main() {
 	}
 
 	repo := NewRegistry(cfg)
+	cluster := NewElasticContainerService(cfg)
 
 	if *destroy {
 		log.Println("Destroy!!")
 		repo.Destroy()
+		cluster.Destroy()
 		return
 	}
 
-	repo.Push(*img)
+	cluster.Create()
+
+	// repo.Push(*img)
+
 }
