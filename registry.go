@@ -1,117 +1,114 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
+	"encoding/base64"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 )
 
 type ContainerRepository interface {
 	Push(imgName string)
-	DeleteImgs()
+	Destroy()
 }
 
-type descRepoResp struct {
-	Repos []repo `json:"repositories"`
-}
-
-type repo struct {
-	Name string `json:"repositoryName"`
-	Uri  string `json:"repositoryUri"`
-}
-
-type Images struct {
-	Ids []struct {
-		Tag string `json:"imageTag"`
-	} `json:"ImageIds"`
-}
+const name = "tiny-cloud-repository"
 
 type ECR struct {
+	client *ecr.Client
+}
+
+func NewRegistry(cfg aws.Config) *ECR {
+	return &ECR{
+		client: ecr.NewFromConfig(cfg),
+	}
+}
+
+func (e *ECR) createRepository() {
+
+	ops := &ecr.CreateRepositoryInput{
+		RepositoryName: aws.String(name),
+		Tags: []types.Tag{{
+			Key:   aws.String("tiny-cloud"),
+			Value: aws.String("repository"),
+		}},
+	}
+
+	_, err := e.client.CreateRepository(context.TODO(), ops, func(o *ecr.Options) {})
+	if err == nil {
+		log.Printf("Created new repository '%s'\n", name)
+	} else if !strings.Contains(err.Error(), "RepositoryAlreadyExistsException") {
+		log.Fatalf("cannot create repository %s, error: %s", name, err)
+	}
+}
+
+func (e *ECR) Destroy() {
+	log.Printf("Removing repository %s\n", name)
+	ops2 := &ecr.DeleteRepositoryInput{
+		RepositoryName: aws.String(name),
+		Force:          true,
+	}
+	_, err := e.client.DeleteRepository(context.TODO(), ops2, func(o *ecr.Options) {})
+	if err != nil {
+		log.Printf("error deleting repoistory '%s' %s\n", name, err)
+	}
 }
 
 // push image (add image name)
-func (r *ECR) Push(img string) {
+func (e *ECR) Push(img string) {
+
+	// create if needed
+	e.createRepository()
+
 	// login to docker
-	r.dockerLogin()
+	e.dockerLogin()
 
 	// tag image
-	tag := r.nextTag()
-	out, _ := run(fmt.Sprintf("docker tag %s %s", img, tag))
-	log.Println(string(out))
+	log.Println("Tagging docker image")
+	tag := fmt.Sprintf("%s:latest", e.uri())
+	run(fmt.Sprintf("docker tag %s %s", img, tag))
 
 	// push
-	out, _ = run(fmt.Sprintf("docker push %s", tag))
+	log.Printf("Push image %s to %s\n", img, name)
+	out, _ := run(fmt.Sprintf("docker push %s", tag))
 	log.Println(string(out))
 
 }
 
-// delete images
-func (r *ECR) DeleteImgs() {
-	// get images
-	imgs := r.images()
-
-	tags := make([]string, 0)
-	for _, img := range imgs.Ids {
-		tags = append(tags, fmt.Sprintf("imageTag=%s", img.Tag))
-	}
-
-	// bulk delete
-	if len(tags) != 0 {
-		ts := strings.Join(tags, " ")
-		_, _ = run(fmt.Sprintf("aws ecr batch-delete-image --repository-name %s --image-ids %s", repoName, ts))
-	}
-}
-
-func (r *ECR) nextTag() string {
-	return fmt.Sprintf("%s:%d", r.uri(), r.nextVer())
-}
-
-func (r *ECR) nextVer() int64 {
-	imgs := r.images()
-	var maxTag int64 = 0
-	for _, d := range imgs.Ids {
-		if t, err := strconv.ParseInt(d.Tag, 10, 64); err == nil && t > maxTag {
-			maxTag = t
-		}
-	}
-	return maxTag + 1
-}
-
-// TODO handle errors
-func (r *ECR) images() Images {
-	out, _ := run(fmt.Sprintf("aws ecr list-images --repository-name %s --profile %s", repoName, profile))
-	var res Images
-	_ = json.Unmarshal(out, &res)
-	return res
-}
-
-func (r *ECR) dockerLogin() {
+func (e *ECR) dockerLogin() {
 	log.Println("docker login")
-	query := "aws ecr get-login-password --profile %s | docker login --username AWS --password-stdin %s"
-	out, _ := run(fmt.Sprintf(query, profile, r.uri()))
+	query := "docker login --username AWS --password %s %s"
+	out, _ := run(fmt.Sprintf(query, e.token(), e.uri()))
 	log.Println(string(out))
 }
 
-func (r *ECR) uri() string {
-	return r.tinyRepo().Uri
-}
-
-func (r *ECR) tinyRepo() repo {
-	repos := r.fetchRepos()
-	for _, re := range repos.Repos {
-		if re.Name == repoName {
-			return re
-		}
+func (e *ECR) uri() string {
+	ops := &ecr.DescribeRepositoriesInput{
+		RepositoryNames: []string{name},
 	}
-	return repo{}
+	out, _ := e.client.DescribeRepositories(context.TODO(), ops, func(o *ecr.Options) {})
+	for _, r := range out.Repositories {
+		return *r.RepositoryUri
+	}
+	log.Fatalf("Cannot find uri for %s repository\n", name)
+	return ""
 }
 
-func (r *ECR) fetchRepos() descRepoResp {
-	out, _ := run(fmt.Sprintf("aws ecr describe-repositories --profile %s", profile)) // todo chec kerror
-
-	var res descRepoResp
-	_ = json.Unmarshal(out, &res) // todo check error
-	return res
+func (e *ECR) token() string {
+	ops := &ecr.GetAuthorizationTokenInput{}
+	out, err := e.client.GetAuthorizationToken(context.TODO(), ops, func(o *ecr.Options) {})
+	if err != nil || len(out.AuthorizationData) == 0 {
+		log.Fatalf("Cannot get password for %s %s\n", name, err)
+	}
+	auth := *out.AuthorizationData[0].AuthorizationToken
+	token, err := base64.RawStdEncoding.DecodeString(auth)
+	if err != nil {
+		log.Fatalf("Error converting auth token from base64 %s\n", err)
+	}
+	return strings.TrimPrefix(string(token), "AWS:")
 }

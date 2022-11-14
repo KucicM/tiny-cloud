@@ -1,2 +1,2 @@
 FROM alpine
-CMD ["echo", "'It works!'"]
+CMD ["touch", "tmp.txt"]
