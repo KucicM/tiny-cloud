@@ -1,4 +1,4 @@
-package main
+package aws
 
 import (
 	"context"
@@ -10,21 +10,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
+	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 )
 
-type ContainerRepository interface {
-	Push(imgName string)
-	Destroy()
-}
-
-const name = "tiny-cloud-repository"
-
 type ECR struct {
+	name   string
 	client *ecr.Client
 }
 
 func NewRegistry(cfg aws.Config) *ECR {
 	return &ECR{
+		name:   fmt.Sprintf("%s-repository", tinycloud.Name),
 		client: ecr.NewFromConfig(cfg),
 	}
 }
@@ -32,7 +28,7 @@ func NewRegistry(cfg aws.Config) *ECR {
 func (e *ECR) createRepository() {
 
 	ops := &ecr.CreateRepositoryInput{
-		RepositoryName: aws.String(name),
+		RepositoryName: aws.String(e.name),
 		Tags: []types.Tag{{
 			Key:   aws.String("tiny-cloud"),
 			Value: aws.String("repository"),
@@ -41,29 +37,26 @@ func (e *ECR) createRepository() {
 
 	_, err := e.client.CreateRepository(context.TODO(), ops, func(o *ecr.Options) {})
 	if err == nil {
-		log.Printf("Created new repository '%s'\n", name)
+		log.Printf("Created new repository '%s'\n", e.name)
 	} else if !strings.Contains(err.Error(), "RepositoryAlreadyExistsException") {
-		log.Fatalf("cannot create repository %s, error: %s", name, err)
+		log.Fatalf("cannot create repository %s, error: %s", e.name, err)
 	}
 }
 
 func (e *ECR) Destroy() {
-	log.Printf("Removing repository %s\n", name)
+	log.Printf("Removing repository %s\n", e.name)
 	ops2 := &ecr.DeleteRepositoryInput{
-		RepositoryName: aws.String(name),
+		RepositoryName: aws.String(e.name),
 		Force:          true,
 	}
 	_, err := e.client.DeleteRepository(context.TODO(), ops2, func(o *ecr.Options) {})
 	if err != nil {
-		log.Printf("error deleting repoistory '%s' %s\n", name, err)
+		log.Printf("error deleting repoistory '%s' %s\n", e.name, err)
 	}
 }
 
 // push image (add image name)
 func (e *ECR) Push(img string) {
-
-	// create if needed
-	e.createRepository()
 
 	// login to docker
 	e.dockerLogin()
@@ -71,11 +64,11 @@ func (e *ECR) Push(img string) {
 	// tag image
 	log.Println("Tagging docker image")
 	tag := fmt.Sprintf("%s:latest", e.uri())
-	run(fmt.Sprintf("docker tag %s %s", img, tag))
+	tinycloud.Run(fmt.Sprintf("docker tag %s %s", img, tag))
 
 	// push
-	log.Printf("Push image %s to %s\n", img, name)
-	out, _ := run(fmt.Sprintf("docker push %s", tag))
+	log.Printf("Push image %s to %s\n", img, e.name)
+	out, _ := tinycloud.Run(fmt.Sprintf("docker push %s", tag))
 	log.Println(string(out))
 
 }
@@ -83,19 +76,19 @@ func (e *ECR) Push(img string) {
 func (e *ECR) dockerLogin() {
 	log.Println("docker login")
 	query := "docker login --username AWS --password %s %s"
-	out, _ := run(fmt.Sprintf(query, e.token(), e.uri()))
+	out, _ := tinycloud.Run(fmt.Sprintf(query, e.token(), e.uri()))
 	log.Println(string(out))
 }
 
 func (e *ECR) uri() string {
 	ops := &ecr.DescribeRepositoriesInput{
-		RepositoryNames: []string{name},
+		RepositoryNames: []string{e.name},
 	}
 	out, _ := e.client.DescribeRepositories(context.TODO(), ops, func(o *ecr.Options) {})
 	for _, r := range out.Repositories {
 		return *r.RepositoryUri
 	}
-	log.Fatalf("Cannot find uri for %s repository\n", name)
+	log.Fatalf("Cannot find uri for %s repository\n", e.name)
 	return ""
 }
 
@@ -103,7 +96,7 @@ func (e *ECR) token() string {
 	ops := &ecr.GetAuthorizationTokenInput{}
 	out, err := e.client.GetAuthorizationToken(context.TODO(), ops, func(o *ecr.Options) {})
 	if err != nil || len(out.AuthorizationData) == 0 {
-		log.Fatalf("Cannot get password for %s %s\n", name, err)
+		log.Fatalf("Cannot get password for %s %s\n", e.name, err)
 	}
 	auth := *out.AuthorizationData[0].AuthorizationToken
 	token, err := base64.RawStdEncoding.DecodeString(auth)
