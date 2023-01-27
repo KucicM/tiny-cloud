@@ -35,8 +35,9 @@ func main() {
 		return
 	}
 
-	app.Init()
+	// app.Init()
 
+	// move to ops
 	if *destroy {
 		log.Println("Destroy!!")
 		app.Destroy()
