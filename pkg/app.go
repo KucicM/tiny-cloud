@@ -9,5 +9,5 @@ type Ops struct {
 
 type App interface {
 	Run(ops Ops) error
-	Destroy()
+	Destroy() error
 }

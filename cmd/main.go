@@ -14,7 +14,7 @@ func main() {
 
 	cloud := flag.String("cloud", "aws", "which cloud provider")
 
-	_ = flag.Bool("destroy", false, "should delete everything")
+	destroy := flag.Bool("destroy", false, "should delete everything")
 
 	_ = flag.String("image", "test", "image name to run")
 	vmType := flag.String("vm-type", "t2.micro", "vm type to use as ecs")
@@ -27,6 +27,11 @@ func main() {
 		app = aws.New()
 	default:
 		log.Fatalf("no such cloud option %s", *cloud)
+	}
+
+	if *destroy {
+		app.Destroy()
+		return
 	}
 
 	app.Run(tinycloud.Ops{VmType: *vmType})

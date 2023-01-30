@@ -39,7 +39,8 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 	return nil
 }
 
-func (a *AWS) Destroy() {
+func (a *AWS) Destroy() error {
 	DestroyVMs(a.cfg)
 	// keys
+	return nil
 }
