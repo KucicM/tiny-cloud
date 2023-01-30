@@ -11,10 +11,7 @@ import (
 
 type AWS struct {
 	ops *tinycloud.Ops
-	ecr *ECR
-	ecs *ECS
-	vm  *VM
-	cfg *aws.Config
+	cfg aws.Config
 }
 
 func New() *AWS {
@@ -23,45 +20,26 @@ func New() *AWS {
 		log.Fatalln(err)
 	}
 
-	ecr := NewRegistry(cfg)
-	ecs := NewECS(cfg)
-	vm := NewVM(cfg)
+	return &AWS{cfg: cfg}
+}
 
-	return &AWS{
-		ecr: ecr,
-		ecs: ecs,
-		vm:  vm,
-		cfg: &cfg,
+func (a *AWS) Run(ops tinycloud.Ops) error {
+	// prepare docker image
+
+	vmReq := EC2Request{InstanceType: ops.VmType}
+	_, err := StartVm(a.cfg, vmReq)
+	if err != nil {
+		return err
 	}
-}
 
-func (a *AWS) Init() {
+	// todo push docker image
 
-	// vm := newVM(cfg)
+	// clean docker staging image
 
-	// vm.stop()
-}
-
-func (a *AWS) Run(ops tinycloud.Ops) {
-	// if destroy?
-
-	// create repo
-	a.ecr.createRepository()
-
-	// create bucket
-
-	// create ecs
-	a.ecs.create()
-
-	// create vm
-	a.vm.Setup()
-
-	// push to repo
-	// run on ecs
-
+	return nil
 }
 
 func (a *AWS) Destroy() {
-	a.ecr.Destroy()
-	a.ecs.destroy()
+	DestroyVMs(a.cfg)
+	// keys
 }

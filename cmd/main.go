@@ -14,40 +14,21 @@ func main() {
 
 	cloud := flag.String("cloud", "aws", "which cloud provider")
 
-	destroy := flag.Bool("destroy", false, "should delete everything")
+	_ = flag.Bool("destroy", false, "should delete everything")
 
-	img := flag.String("image", "test", "image name to run")
-	vm := flag.String("vm-type", "t2.micro", "vm type to use as ecs")
+	_ = flag.String("image", "test", "image name to run")
+	vmType := flag.String("vm-type", "t2.micro", "vm type to use as ecs")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
 	flag.Parse()
 
-
-	// make it simpler
-	// use std not loggers (loggers maybe to file?)
-
 	var app tinycloud.App
-	// todo convert to lowercase
 	switch *cloud {
 	case "aws":
 		app = aws.New()
 	default:
-		log.Fatalf("%s not supported", *cloud)
-		return
+		log.Fatalf("no such cloud option %s", *cloud)
 	}
 
-	// app.Init()
+	app.Run(tinycloud.Ops{VmType: *vmType})
 
-	// move to ops
-	if *destroy {
-		log.Println("Destroy!!")
-		app.Destroy()
-		return
-	}
-
-	ops := tinycloud.Ops{
-		Image:  *img,
-		VmType: *vm,
-	}
-
-	app.Run(ops)
 }
