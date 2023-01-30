@@ -7,6 +7,8 @@ Run docker task in a cloud
 
 Create user "tiny-cloud" in AWS console. IAM->USERS
 
+Create role "tiny-cloud" in AWS console. IAM->ROLES
+
 Add permissions:
 
 - AmazonEC2ContainerRegistryFullAccess
