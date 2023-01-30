@@ -1,23 +1,7 @@
 
 # tiny-cloud
 
-CLI wrapper to run a simple tasks on a cloud
-
-## Install
-
-prerequisites:
-
-Docker:
-
-```text
-https://docs.docker.com/engine/install/
-```
-
-AWS CLI:
-
-```text
-https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-```
+Run docker task in a cloud
 
 ## Setup
 
