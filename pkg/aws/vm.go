@@ -21,58 +21,70 @@ type VmAPI interface {
 	DescribeInstanceStatus(ctx context.Context,
 		params *ec2.DescribeInstanceStatusInput,
 		optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceStatusOutput, error)
+	StartInstances(ctx context.Context,
+		params *ec2.StartInstancesInput,
+		optFns ...func(*ec2.Options)) (*ec2.StartInstancesOutput, error)
 }
+
+// state enmu
+
+type VmState int64
+
+const (
+	Initial VmState = iota
+	Create
+	Pending
+	ShuttingDown
+	Stopping
+	Stopped
+	Ready
+	Terminated
+	Error
+)
+
+func (s VmState) String() string {
+	strs := []string{"INITIAL", "CREATE", "PENDING", "SHUTTINGDOWN",
+		"STOPPING", "STOPPED", "READY", "TERMINATED", "ERROR"}
+	if s < Initial || s > Error {
+		return "UNKNOWN"
+	}
+	return strs[s]
+}
+
+func (s VmState) fromAwsState(state *types.InstanceState) VmState {
+	switch *state.Code {
+	case 0:
+		return Pending
+	case 16:
+		return Ready
+	case 32:
+		return ShuttingDown
+	case 48:
+		return Terminated
+	case 64:
+		return Stopping
+	case 80:
+		return Stopped
+	default:
+		log.Printf("got unexpected aws state %+v\n", state)
+		return Initial
+	}
+}
+
+// done state enum
 
 type VmParams struct {
 	instanceType string
 }
 
-type runningState int
-
-func (s runningState) from(state *types.InstanceState) runningState {
-	switch *state.Code {
-	case 0:
-		return pendingState
-	case 16:
-		return readyState
-	case 32:
-		return shuttingDownState
-	case 48:
-		return terminatedState
-	case 80:
-		return stoppedState
-	}
-	return initialState // should never happend
-}
-
-const (
-	initialState runningState = iota
-	createState
-	pendingState
-	shuttingDownState
-	stoppingState
-	stoppedState
-	readyState
-	terminatedState
-)
-
-type VmState struct {
-	Api          VmAPI
-	InstanceType string
-	State        runningState
-	Id           string
-}
-
 func NewVm(api VmAPI, params VmParams) error {
-	// vm := &VmState{api, params.instanceType, initial, ""}
-
-	state := initialState
+	state := Initial
 
 	var instanceId string
 	var err error
-	for err == nil && state != readyState {
+	for err == nil && state != Ready {
 		switch state {
-		case initialState:
+		case Initial:
 			log.Println("check if exists")
 			// todo add filter by tag
 			ops := &ec2.DescribeInstancesInput{
@@ -94,14 +106,14 @@ func NewVm(api VmAPI, params VmParams) error {
 			for _, r := range out.Reservations {
 				for _, instance := range r.Instances {
 					instanceId = *instance.InstanceId
-					state = runningState.from(state, instance.State)
+					state = VmState.fromAwsState(state, instance.State)
 				}
 			}
 
 			if len(out.Reservations) == 0 {
-				state = createState
+				state = Create
 			}
-		case createState:
+		case Create:
 			log.Println("create vm")
 
 			ops := &ec2.RunInstancesInput{
@@ -119,9 +131,8 @@ func NewVm(api VmAPI, params VmParams) error {
 				return fmt.Errorf("unexpected number of instances, %d", len(out.Instances))
 			}
 			instanceId = *out.Instances[0].InstanceId
-			state = pendingState
-
-		case pendingState, shuttingDownState, stoppingState:
+			state = Pending
+		case Pending, ShuttingDown, Stopping:
 			time.Sleep(time.Second * 5) // wait for next state
 
 			ops := &ec2.DescribeInstanceStatusInput{
@@ -138,14 +149,24 @@ func NewVm(api VmAPI, params VmParams) error {
 				return fmt.Errorf("unexpected count of instance status %d", len(out.InstanceStatuses))
 			}
 
-			state = runningState.from(state, out.InstanceStatuses[0].InstanceState)
+			state = VmState.fromAwsState(state, out.InstanceStatuses[0].InstanceState)
 			log.Println("new state ", state)
-		case stoppedState:
-			// start instance
-		case readyState:
+		case Stopped:
+			log.Println("start vm")
+			ops := &ec2.StartInstancesInput{
+				InstanceIds: []string{instanceId},
+			}
+
+			_, err := api.StartInstances(context.TODO(), ops, func(o *ec2.Options) {})
+			if err != nil {
+				return err
+			}
+
+			state = Pending
+		case Ready:
 			return nil
-		case terminatedState:
-			state = initialState
+		case Terminated:
+			state = Initial
 		}
 	}
 	return nil
