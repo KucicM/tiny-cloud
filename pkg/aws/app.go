@@ -1,10 +1,12 @@
 package aws
 
 import (
+	"context"
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 )
 
@@ -14,25 +16,26 @@ type AWS struct {
 }
 
 func New() *AWS {
-	//cfg, err := config.LoadDefaultConfig(context.TODO())
-	creds := credentials.NewEnvCredentials()
-	v, err := creds.Get()
+	// maybe add cofigurable profile?
+
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithSharedConfigProfile(tinycloud.PROFILE_NAME),
+	)
+
 	if err != nil {
 		log.Fatalln(err)
 	}
-	log.Printf("%+v\n", v)
 
-	return &AWS{}
+	return &AWS{cfg: cfg}
 }
 
 func (a *AWS) Run(ops tinycloud.Ops) error {
 	// prepare docker image
 
-	vmReq := EC2Request{InstanceType: ops.VmType}
-	_, err := StartVm(a.cfg, vmReq)
-	if err != nil {
-		return err
-	}
+	// vmReq := EC2Request{InstanceType: ops.VmType}
+	client := ec2.NewFromConfig(a.cfg)
+	NewVm(client, VmParams{ops.VmType})
 
 	// todo push docker image
 
@@ -42,7 +45,7 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 }
 
 func (a *AWS) Destroy() error {
-	DestroyVMs(a.cfg)
+	// DestroyVMs(a.cfg)
 	// keys
 	return nil
 }
