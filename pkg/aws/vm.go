@@ -26,148 +26,126 @@ type VmAPI interface {
 		optFns ...func(*ec2.Options)) (*ec2.StartInstancesOutput, error)
 }
 
-// state enmu
-
-type VmState int64
-
-const (
-	Initial VmState = iota
-	Create
-	Pending
-	ShuttingDown
-	Stopping
-	Stopped
-	Ready
-	Terminated
-	Error
-)
-
-func (s VmState) String() string {
-	strs := []string{"INITIAL", "CREATE", "PENDING", "SHUTTINGDOWN",
-		"STOPPING", "STOPPED", "READY", "TERMINATED", "ERROR"}
-	if s < Initial || s > Error {
-		return "UNKNOWN"
-	}
-	return strs[s]
+type VmRequest struct {
+	vmType string
+	debug  bool
 }
 
-func (s VmState) fromAwsState(state *types.InstanceState) VmState {
-	switch *state.Code {
-	case 0:
-		return Pending
-	case 16:
-		return Ready
-	case 32:
-		return ShuttingDown
-	case 48:
-		return Terminated
-	case 64:
-		return Stopping
-	case 80:
-		return Stopped
-	default:
-		log.Printf("got unexpected aws state %+v\n", state)
-		return Initial
-	}
-}
-
-// done state enum
-
-type VmParams struct {
-	instanceType string
-}
-
-func NewVm(api VmAPI, params VmParams) error {
+func NewVm(api VmAPI, req VmRequest) error {
 	state := Initial
 
-	var instanceId string
+	var vmId string
 	var err error
 	for err == nil && state != Ready {
+		prevState := state
 		switch state {
 		case Initial:
-			log.Println("check if exists")
-			// todo add filter by tag
-			ops := &ec2.DescribeInstancesInput{
-				Filters: []types.Filter{{
-					Name:   aws.String("instance-type"),
-					Values: []string{params.instanceType},
-				}, {
-					Name: aws.String("instance-state-name"),
-					Values: []string{"pending", "running",
-						"shutting-down", "stopping", "stopped"},
-				}},
-			}
-
-			out, err := api.DescribeInstances(context.TODO(), ops, func(o *ec2.Options) {})
-			if err != nil {
-				return err
-			}
-
-			for _, r := range out.Reservations {
-				for _, instance := range r.Instances {
-					instanceId = *instance.InstanceId
-					state = VmState.fromAwsState(state, instance.State)
-				}
-			}
-
-			if len(out.Reservations) == 0 {
-				state = Create
-			}
+			vmId, state, err = findVmIfExists(api, req.vmType)
 		case Create:
-			log.Println("create vm")
-
-			ops := &ec2.RunInstancesInput{
-				MinCount:     aws.Int32(1),
-				MaxCount:     aws.Int32(1),
-				ImageId:      aws.String("ami-08c41e4d343c2e7ca"), // TODO
-				InstanceType: types.InstanceType(params.instanceType),
-			}
-			out, err := api.RunInstances(context.TODO(), ops, func(o *ec2.Options) {})
-			if err != nil {
-				return err
-			}
-
-			if len(out.Instances) != 1 {
-				return fmt.Errorf("unexpected number of instances, %d", len(out.Instances))
-			}
-			instanceId = *out.Instances[0].InstanceId
-			state = Pending
+			vmId, state, err = createVm(api, req.vmType)
 		case Pending, ShuttingDown, Stopping:
-			time.Sleep(time.Second * 5) // wait for next state
-
-			ops := &ec2.DescribeInstanceStatusInput{
-				IncludeAllInstances: aws.Bool(true),
-				InstanceIds:         []string{instanceId},
-			}
-
-			out, err := api.DescribeInstanceStatus(context.TODO(), ops, func(o *ec2.Options) {})
-			if err != nil {
-				return err
-			}
-
-			if len(out.InstanceStatuses) != 1 {
-				return fmt.Errorf("unexpected count of instance status %d", len(out.InstanceStatuses))
-			}
-
-			state = VmState.fromAwsState(state, out.InstanceStatuses[0].InstanceState)
-			log.Println("new state ", state)
+			time.Sleep(time.Second * 1) // wait for next state
+			state, err = getVmState(api, vmId)
 		case Stopped:
-			log.Println("start vm")
-			ops := &ec2.StartInstancesInput{
-				InstanceIds: []string{instanceId},
-			}
-
-			_, err := api.StartInstances(context.TODO(), ops, func(o *ec2.Options) {})
-			if err != nil {
-				return err
-			}
-
-			state = Pending
+			state, err = startVm(api, vmId)
 		case Ready:
 			return nil
 		case Terminated:
 			state = Initial
 		}
+		if req.debug {
+			debug(prevState, state, vmId, req.vmType, err)
+		}
 	}
 	return nil
+}
+
+func findVmIfExists(api VmAPI, vmType string) (string, VmState, error) {
+	// todo add filter by tag
+	ops := &ec2.DescribeInstancesInput{
+		Filters: []types.Filter{{
+			Name:   aws.String("instance-type"),
+			Values: []string{vmType},
+		}, {
+			Name: aws.String("instance-state-name"),
+			Values: []string{"pending", "running",
+				"shutting-down", "stopping", "stopped"},
+		}},
+	}
+
+	out, err := api.DescribeInstances(context.TODO(), ops, func(o *ec2.Options) {})
+	if err != nil {
+		return "", Error, fmt.Errorf("failed on describe vm with error: %s", err)
+	}
+
+	for _, r := range out.Reservations {
+		for _, instance := range r.Instances {
+			return *instance.InstanceId, VmState.fromAwsState(Initial, instance.State), nil
+		}
+	}
+
+	return "", Create, nil
+}
+
+func createVm(api VmAPI, vmType string) (string, VmState, error) {
+	ops := &ec2.RunInstancesInput{
+		MinCount:     aws.Int32(1),
+		MaxCount:     aws.Int32(1),
+		ImageId:      aws.String("ami-08c41e4d343c2e7ca"), // TODO
+		InstanceType: types.InstanceType(vmType),
+	}
+	out, err := api.RunInstances(context.TODO(), ops, func(o *ec2.Options) {})
+	if err != nil {
+		return "", Error, fmt.Errorf("faild to create new vm with error: %s", err)
+	}
+
+	if len(out.Instances) == 0 {
+		return "", Error, fmt.Errorf("got zero vm after create")
+	}
+	return *out.Instances[0].InstanceId, Pending, nil
+}
+
+func getVmState(api VmAPI, vmId string) (VmState, error) {
+	if vmId == "" {
+		return Error, fmt.Errorf("cannot check state without vm id")
+	}
+	ops := &ec2.DescribeInstanceStatusInput{
+		IncludeAllInstances: aws.Bool(true),
+		InstanceIds:         []string{vmId},
+	}
+
+	out, err := api.DescribeInstanceStatus(context.TODO(), ops, func(o *ec2.Options) {})
+	if err != nil {
+		return Error, fmt.Errorf("faild to get vm status %s", err)
+	}
+
+	if len(out.InstanceStatuses) == 0 {
+		return Error, fmt.Errorf("got zero vm state with id %s", vmId)
+	}
+	return VmState.fromAwsState(Pending, out.InstanceStatuses[0].InstanceState), nil
+}
+
+func startVm(api VmAPI, vmId string) (VmState, error) {
+	if vmId == "" {
+		return Error, fmt.Errorf("cannot start vm without id")
+	}
+
+	ops := &ec2.StartInstancesInput{InstanceIds: []string{vmId}}
+	_, err := api.StartInstances(context.TODO(), ops, func(o *ec2.Options) {})
+	if err != nil {
+		return Error, fmt.Errorf("faild to start instance %s", err)
+	}
+	return Pending, nil
+}
+
+func debug(pState, state VmState, vmId, vmType string, err error) {
+	var errStr string
+	if err != nil {
+		errStr = fmt.Sprintf(" error: %s", err)
+	}
+
+	if vmId != "" {
+		vmId = fmt.Sprintf(" vmId: %s", vmId)
+	}
+	log.Printf("%s -> %s: type: %s%s%s\n", pState, state, vmType, vmId, errStr)
 }

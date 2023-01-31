@@ -35,7 +35,7 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 
 	// vmReq := EC2Request{InstanceType: ops.VmType}
 	client := ec2.NewFromConfig(a.cfg)
-	NewVm(client, VmParams{ops.VmType})
+	NewVm(client, VmRequest{ops.VmType, true})
 
 	// todo push docker image
 
