@@ -30,6 +30,7 @@ type VmRequest struct {
 	vmType  string
 	debug   bool
 	keyName string
+	sgName  string
 }
 
 func NewVm(api VmAPI, req VmRequest) error {
@@ -43,7 +44,7 @@ func NewVm(api VmAPI, req VmRequest) error {
 		case Initial:
 			vmId, state, err = findVmIfExists(api, req.vmType)
 		case Create:
-			vmId, state, err = createVm(api, req.vmType, req.keyName)
+			vmId, state, err = createVm(api, req.vmType, req.keyName, req.sgName)
 		case Pending, ShuttingDown, Stopping:
 			time.Sleep(time.Second * 1) // wait for next state
 			state, err = getVmState(api, vmId)
@@ -88,13 +89,14 @@ func findVmIfExists(api VmAPI, vmType string) (string, VmState, error) {
 	return "", Create, nil
 }
 
-func createVm(api VmAPI, vmType, keyName string) (string, VmState, error) {
+func createVm(api VmAPI, vmType, keyName, sgName string) (string, VmState, error) {
 	ops := &ec2.RunInstancesInput{
-		MinCount:     aws.Int32(1),
-		MaxCount:     aws.Int32(1),
-		ImageId:      aws.String("ami-06c39ed6b42908a36"), // TODO
-		InstanceType: types.InstanceType(vmType),
-		KeyName:      aws.String(keyName),
+		MinCount:       aws.Int32(1),
+		MaxCount:       aws.Int32(1),
+		ImageId:        aws.String("ami-06c39ed6b42908a36"), // TODO
+		InstanceType:   types.InstanceType(vmType),
+		KeyName:        aws.String(keyName),
+		SecurityGroups: []string{sgName},
 	}
 	out, err := api.RunInstances(context.TODO(), ops, func(o *ec2.Options) {})
 	if err != nil {
