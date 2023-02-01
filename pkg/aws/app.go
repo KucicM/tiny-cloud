@@ -105,29 +105,15 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 		return err
 	}
 
-	// vmReq := EC2Request{InstanceType: ops.VmType}
+	// keys
 
-	// securityGroupName := "tiny-cloud"
-	// op := &ec2.DescribeSecurityGroupsInput{
-	// 	Filters: []types.Filter{{
-	// 		Name:   aws.String("group-name"),
-	// 		Values: []string{securityGroupName},
-	// 	}},
-	// }
+	keyOps := &ec2.CreateKeyPairInput{KeyName: aws.String(name)}
+	out, err := ec2Client.CreateKeyPair(context.TODO(), keyOps, func(o *ec2.Options) {})
+	if err != nil {
+		return err
+	}
 
-	// out, err := ec2Client.DescribeSecurityGroups(context.TODO(), op, func(o *ec2.Options) {})
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return err
-	// }
-
-	// log.Printf("%+v", out.SecurityGroups)
-
-	// op := &ec2.DescribeKeyPairsInput{KeyNames: []string{tinycloud.PROFILE_NAME}}
-	// out, err := ec2Client.DescribeKeyPairs(context.TODO(), op, func(o *ec2.Options) {})
-	// if err != nil {
-	// 	return err
-	// }
+	log.Printf("%+v", *out.KeyMaterial)
 
 	// if len(out.KeyPairs) == 0 {
 	// 	// todo create key
@@ -144,7 +130,7 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 
 	// key, err := NewKeyPair(ec2Client)
 
-	NewVm(ec2Client, VmRequest{ops.VmType, true, "test-keys", name})
+	// NewVm(ec2Client, VmRequest{ops.VmType, true, "test-keys", name})
 
 	// todo push docker image
 
