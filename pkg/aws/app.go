@@ -34,8 +34,30 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 	// prepare docker image
 
 	// vmReq := EC2Request{InstanceType: ops.VmType}
-	client := ec2.NewFromConfig(a.cfg)
-	NewVm(client, VmRequest{ops.VmType, true})
+	ec2Client := ec2.NewFromConfig(a.cfg)
+
+	op := &ec2.DescribeKeyPairsInput{KeyNames: []string{tinycloud.PROFILE_NAME}}
+	out, err := ec2Client.DescribeKeyPairs(context.TODO(), op, func(o *ec2.Options) {})
+	if err != nil {
+		return err
+	}
+
+	if len(out.KeyPairs) == 0 {
+		// todo create key
+		return nil
+	}
+
+	info := out.KeyPairs[0]
+	name := info.KeyName
+
+	log.Printf("out %v\n", len(out.KeyPairs))
+	log.Printf("out %v\n", *name)
+
+	// ec2Client.DescribeKeyPairs(ec2Client)
+
+	// key, err := NewKeyPair(ec2Client)
+
+	NewVm(ec2Client, VmRequest{ops.VmType, true, tinycloud.KEY_NAME})
 
 	// todo push docker image
 
