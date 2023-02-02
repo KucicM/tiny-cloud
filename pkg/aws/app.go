@@ -247,7 +247,6 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 
 	stdin.Write([]byte("whoami\n"))
 	// stdin.Write([]byte("sudo shutdown now\n"))
-	stdin.Write([]byte("quit\n"))
 	session.Wait()
 	return nil
 }
