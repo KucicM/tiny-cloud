@@ -82,6 +82,13 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 	sgOps := &ec2.CreateSecurityGroupInput{
 		Description: aws.String("tiny-cloud"),
 		GroupName:   aws.String(name),
+		TagSpecifications: []types.TagSpecification{{
+			ResourceType: types.ResourceTypeSecurityGroup,
+			Tags: []types.Tag{{
+				Key:   aws.String("security-group"),
+				Value: aws.String("tiny-cloud"),
+			}},
+		}},
 	}
 
 	_, err = ec2Client.CreateSecurityGroup(context.TODO(), sgOps, func(o *ec2.Options) {})
@@ -101,6 +108,13 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 				CidrIp: aws.String(ip),
 			}},
 		}},
+		TagSpecifications: []types.TagSpecification{{
+			ResourceType: types.ResourceTypeSecurityGroupRule,
+			Tags: []types.Tag{{
+				Key:   aws.String("security-group-rule"),
+				Value: aws.String("tiny-cloud"),
+			}},
+		}},
 	}
 
 	_, err = ec2Client.AuthorizeSecurityGroupIngress(context.TODO(), ingressOps, func(o *ec2.Options) {})
@@ -110,7 +124,16 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 	}
 
 	// keys
-	keyOps := &ec2.CreateKeyPairInput{KeyName: aws.String(name)}
+	keyOps := &ec2.CreateKeyPairInput{
+		KeyName: aws.String(name),
+		TagSpecifications: []types.TagSpecification{{
+			ResourceType: types.ResourceTypeKeyPair,
+			Tags: []types.Tag{{
+				Key:   aws.String("key-pair"),
+				Value: aws.String("tiny-cloud"),
+			}},
+		}},
+	}
 	keyOut, err := ec2Client.CreateKeyPair(context.TODO(), keyOps, func(o *ec2.Options) {})
 	if err != nil {
 		return err
@@ -125,6 +148,13 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 		KeyName:                           aws.String(name),
 		SecurityGroups:                    []string{name},
 		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
+		TagSpecifications: []types.TagSpecification{{
+			ResourceType: types.ResourceTypeInstance,
+			Tags: []types.Tag{{
+				Key:   aws.String("ec2"),
+				Value: aws.String("tiny-cloud"),
+			}},
+		}},
 	}
 	out, err := ec2Client.RunInstances(context.TODO(), vmOps, func(o *ec2.Options) {})
 	if err != nil {
@@ -147,6 +177,8 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 	log.Println("wait vm start")
 	for {
 		statusOut, err := ec2Client.DescribeInstanceStatus(context.TODO(), statusOps, func(o *ec2.Options) {})
+
+		// can get The instance ID 'vmIdxxxx' does not exist
 		if err != nil {
 			return fmt.Errorf("faild to get vm status %s", err)
 		}
