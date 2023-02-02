@@ -34,6 +34,7 @@ func main() {
 		return
 	}
 
-	log.Fatalln(app.Run(tinycloud.Ops{VmType: *vmType}))
-
+	if err := app.Run(tinycloud.Ops{VmType: *vmType}); err != nil {
+		log.Fatalln(err)
+	}
 }
