@@ -13,11 +13,9 @@ var debug = false
 func main() {
 
 	cloud := flag.String("cloud", "aws", "which cloud provider")
-
 	destroy := flag.Bool("destroy", false, "should delete everything")
-
-	_ = flag.String("image", "test", "image name to run")
 	vmType := flag.String("vm-type", "t2.micro", "vm type to use as ecs")
+
 	flag.BoolVar(&debug, "debug", false, "debug mode")
 	flag.Parse()
 

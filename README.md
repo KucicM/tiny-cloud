@@ -1,9 +1,11 @@
 
 # tiny-cloud
 
-Run docker task in a cloud
+Run task on cloud VMs.
 
 ## Setup
+
+### AWS
 
 Create user "tiny-cloud" in AWS console. IAM->USERS
 
@@ -13,22 +15,22 @@ Add permissions:
 
 - AmazonEC2ContainerRegistryFullAccess
 
-## Run
+### Configure
 
-Build docker image:
-
-``` docker
-docker -t hello-world .
+``` bash
+tiny-cloud configure
 ```
+
+## Run
 
 Run a task:
 
 ``` bash
-go run . --image hello-world
+tiny-cloud run <command>
 ```
 
 ## Delete resources
 
 ``` bash
-go run . --destroy true
+tiny-cloud --destroy true
 ```
