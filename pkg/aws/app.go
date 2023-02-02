@@ -275,11 +275,13 @@ func (a *AWS) Destroy() error {
 		}
 	}
 
-	log.Printf("delete vmIds: %+v\n", vmIds)
-	vmDelOps := &ec2.TerminateInstancesInput{InstanceIds: vmIds}
-	_, err = ec2Client.TerminateInstances(context.TODO(), vmDelOps, func(o *ec2.Options) {})
-	if err != nil {
-		return err
+	if len(vmIds) > 0 {
+		log.Printf("delete vmIds: %+v\n", vmIds)
+		vmDelOps := &ec2.TerminateInstancesInput{InstanceIds: vmIds}
+		_, err = ec2Client.TerminateInstances(context.TODO(), vmDelOps, func(o *ec2.Options) {})
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO wait for vms to be terminated?

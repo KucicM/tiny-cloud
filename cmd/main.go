@@ -30,7 +30,9 @@ func main() {
 	}
 
 	if *destroy {
-		app.Destroy()
+		if err := app.Destroy(); err != nil {
+			log.Println(err)
+		}
 		return
 	}
 
