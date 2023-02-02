@@ -85,8 +85,8 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeSecurityGroup,
 			Tags: []types.Tag{{
-				Key:   aws.String("security-group"),
-				Value: aws.String("tiny-cloud"),
+				Key:   aws.String("tiny-cloud"),
+				Value: aws.String("security-group"),
 			}},
 		}},
 	}
@@ -111,8 +111,8 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeSecurityGroupRule,
 			Tags: []types.Tag{{
-				Key:   aws.String("security-group-rule"),
-				Value: aws.String("tiny-cloud"),
+				Key:   aws.String("tiny-cloud"),
+				Value: aws.String("security-group-rule"),
 			}},
 		}},
 	}
@@ -129,8 +129,8 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeKeyPair,
 			Tags: []types.Tag{{
-				Key:   aws.String("key-pair"),
-				Value: aws.String("tiny-cloud"),
+				Key:   aws.String("tiny-cloud"),
+				Value: aws.String("key-pairs"),
 			}},
 		}},
 	}
@@ -151,8 +151,8 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeInstance,
 			Tags: []types.Tag{{
-				Key:   aws.String("ec2"),
-				Value: aws.String("tiny-cloud"),
+				Key:   aws.String("tiny-cloud"),
+				Value: aws.String("ec2"),
 			}},
 		}},
 	}
@@ -243,14 +243,97 @@ func (a *AWS) Run(ops tinycloud.Ops) error {
 		return err
 	}
 
+	// push to S3?
+
 	stdin.Write([]byte("whoami\n"))
-	stdin.Write([]byte("sudo shutdown now\n"))
+	// stdin.Write([]byte("sudo shutdown now\n"))
+	stdin.Write([]byte("quit\n"))
 	session.Wait()
 	return nil
 }
 
 func (a *AWS) Destroy() error {
-	// DestroyVMs(a.cfg)
-	// keys
+
+	ec2Client := ec2.NewFromConfig(a.cfg)
+
+	// VM
+	vmOps := &ec2.DescribeInstancesInput{
+		Filters: []types.Filter{
+			{Name: aws.String("tag-key"), Values: []string{"tiny-cloud"}},
+			{Name: aws.String("instance-state-name"), Values: []string{"pending", "running", "stopped"}},
+		},
+	}
+
+	vmDesOut, err := ec2Client.DescribeInstances(context.TODO(), vmOps, func(o *ec2.Options) {})
+	if err != nil {
+		return err
+	}
+
+	vmIds := make([]string, 0)
+	for _, res := range vmDesOut.Reservations {
+		for _, vm := range res.Instances {
+			vmIds = append(vmIds, *vm.InstanceId)
+		}
+	}
+
+	log.Printf("delete vmIds: %+v\n", vmIds)
+	vmDelOps := &ec2.TerminateInstancesInput{InstanceIds: vmIds}
+	_, err = ec2Client.TerminateInstances(context.TODO(), vmDelOps, func(o *ec2.Options) {})
+	if err != nil {
+		return err
+	}
+
+	// TODO wait for vms to be terminated?
+
+	// Keys
+	keyOps := &ec2.DescribeKeyPairsInput{Filters: []types.Filter{{
+		Name:   aws.String("tag-key"),
+		Values: []string{"tiny-cloud"},
+	}}}
+
+	keyDesOut, err := ec2Client.DescribeKeyPairs(context.TODO(), keyOps, func(o *ec2.Options) {})
+	if err != nil {
+		return err
+	}
+	keyIds := make([]string, 0)
+	for _, key := range keyDesOut.KeyPairs {
+		keyIds = append(keyIds, *key.KeyPairId)
+	}
+
+	log.Printf("delete keyIds: %+v\n", keyIds)
+	for _, keyId := range keyIds {
+		keyDelOps := &ec2.DeleteKeyPairInput{KeyPairId: aws.String(keyId)}
+		_, err := ec2Client.DeleteKeyPair(context.TODO(), keyDelOps, func(o *ec2.Options) {})
+		if err != nil {
+			return err
+		}
+	}
+
+	// Security group
+	sgDesOps := &ec2.DescribeSecurityGroupsInput{Filters: []types.Filter{{
+		Name:   aws.String("tag-key"),
+		Values: []string{"tiny-cloud"},
+	}}}
+
+	sgDesOut, err := ec2Client.DescribeSecurityGroups(context.TODO(), sgDesOps, func(o *ec2.Options) {})
+	if err != nil {
+		return err
+	}
+
+	sgIds := make([]string, 0)
+	for _, sg := range sgDesOut.SecurityGroups {
+		sgIds = append(sgIds, *sg.GroupId)
+	}
+
+	log.Printf("delete security-group-ids: %+v\n", sgIds)
+	for _, sgId := range sgIds {
+		sgDelOps := &ec2.DeleteSecurityGroupInput{GroupId: aws.String(sgId)}
+		_, err := ec2Client.DeleteSecurityGroup(context.TODO(), sgDelOps, func(o *ec2.Options) {})
+		if err != nil {
+			return err
+		}
+	}
+
+	// S3
 	return nil
 }
