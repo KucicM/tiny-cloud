@@ -20,7 +20,6 @@ import (
 )
 
 type AWS struct {
-	ops *tinycloud.Ops
 	cfg aws.Config
 }
 

@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var debug = false
-
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().BoolP("debug", "b", false, "print debug states")
