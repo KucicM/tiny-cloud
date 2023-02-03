@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	tinycloud "github.com/kucicm/tiny-cloud/pkg"
+	"github.com/kucicm/tiny-cloud/pkg/data"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ var profileListCmd = &cobra.Command{
 	Long:  "list existing profiles",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("profile list called")
-		tinycloud.ListProfiles()
+		data.ListProfiles()
 	},
 }
 

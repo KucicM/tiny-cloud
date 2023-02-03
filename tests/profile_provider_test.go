@@ -4,12 +4,16 @@ import (
 	"testing"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
+	"github.com/kucicm/tiny-cloud/pkg/data"
 )
 
 // TODO clear dbs and create separete db for tests
+func init() {
+	data.SetupDatabes(":memory:")
+}
 
 func TestListNoProfiles(t *testing.T) {
-	profiles, err := tinycloud.ListProfiles()
+	profiles, err := data.ListProfiles()
 	if err != nil {
 		t.Errorf("did not expect error %s", err)
 	}
@@ -21,12 +25,12 @@ func TestListNoProfiles(t *testing.T) {
 
 func TestAddAndListProfiles(t *testing.T) {
 	profile := &tinycloud.Profile{Name: "test-profile-1", Description: "test des"}
-	err := tinycloud.AddProfile(profile)
+	err := data.AddProfile(profile)
 	if err != nil {
 		t.Errorf("did not expect error %s", err)
 	}
 
-	profiles, err := tinycloud.ListProfiles()
+	profiles, err := data.ListProfiles()
 	if err != nil {
 		t.Errorf("did not expect error %s", err)
 	}
