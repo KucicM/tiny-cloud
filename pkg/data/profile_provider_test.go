@@ -1,18 +1,28 @@
-package tinycloud_test
+package data_test
 
 import (
+	"database/sql"
+	"log"
 	"testing"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 	"github.com/kucicm/tiny-cloud/pkg/data"
 )
 
-// TODO clear dbs and create separete db for tests
-func init() {
-	data.SetupDatabes(":memory:")
+func database() (*sql.DB, func()) {
+	db := data.SetupDatabes("test.db")
+	cleaner := func() {
+		_, err := db.Exec("DELETE FROM Profiles")
+		if err != nil {
+			log.Println(err)
+		}
+	}
+	return db, cleaner
 }
 
 func TestListNoProfiles(t *testing.T) {
+	_, cleaner := database()
+	defer cleaner()
 	profiles, err := data.ListProfiles()
 	if err != nil {
 		t.Errorf("did not expect error %s", err)
@@ -24,6 +34,8 @@ func TestListNoProfiles(t *testing.T) {
 }
 
 func TestAddAndListProfiles(t *testing.T) {
+	_, cleaner := database()
+	defer cleaner()
 	profile := &tinycloud.Profile{Name: "test-profile-1", Description: "test des"}
 	err := data.AddProfile(profile)
 	if err != nil {

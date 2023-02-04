@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	data.SetupDatabes("") // ugly
+	_ = data.SetupDatabes("") // ugly
 	defer data.CloseDatabes()
 
 	cmd.Execute()

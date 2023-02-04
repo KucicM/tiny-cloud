@@ -9,7 +9,7 @@ import (
 
 var db *sql.DB
 
-func SetupDatabes(url string) {
+func SetupDatabes(url string) *sql.DB {
 	if url == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -28,6 +28,8 @@ func SetupDatabes(url string) {
 	openDatabase(url)
 
 	SetupProfileTabel()
+
+	return db
 }
 
 func openDatabase(url string) error {
