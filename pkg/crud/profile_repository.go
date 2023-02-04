@@ -28,3 +28,7 @@ func SaveProfile(profile *tinycloud.Profile) error {
 	_, err := db.Exec(query, profile.Name, profile.Description)
 	return err
 }
+
+func Save(profile *tinycloud.Profile, cloudSettigs *tinycloud.CloudSettings) error {
+	return nil
+}

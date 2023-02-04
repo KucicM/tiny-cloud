@@ -18,4 +18,21 @@ type Profile struct {
 	Id          int
 	Name        string
 	Description string
+	Cloud       string
+}
+
+type CloudSettings struct {
+	Name string
+
+	// aws
+	AwsRegion           string
+	AwsAccessKeyId      string
+	AwsSeacretAccessKey string
+
+	// gcp
+}
+
+var SupportedClouds []string = []string{
+	"aws",
+	"gcp",
 }

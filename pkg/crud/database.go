@@ -35,6 +35,10 @@ func SetupDatabes(url string) *sql.DB {
 		log.Fatalln(err)
 	}
 
+	if err := setupAwsSettigsTable(); err != nil {
+		log.Fatalln(err)
+	}
+
 	return db
 }
 
@@ -59,7 +63,20 @@ func setupProfileTabel() error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Profiles (
 		Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		Name TEXT NOT NULL,
-		Description TEXT NOT NULL
+		Description TEXT NOT NULL,
+		Active BOOL NOT NULL DEFAULT FALSE,
+		CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`)
+	return err
+}
+
+func setupAwsSettigsTable() error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS AwsSettings (
+		Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		ProfileId NOT NULL,
+		Region TEXT NOT NULL,
+		AccessKey TEXT NOT NULL,
+		SecretAccessKey TEXT NOT NULL
 	);`)
 	return err
 }

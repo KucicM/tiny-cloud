@@ -13,6 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
@@ -25,12 +26,19 @@ type AWS struct {
 
 const PROFILE_NAME = "tiny-cloud"
 
-func New() *AWS {
+func New(settings tinycloud.CloudSettings) *AWS {
 	// maybe add cofigurable profile?
+
+	creds := credentials.NewStaticCredentialsProvider(
+		settings.AwsAccessKeyId,
+		settings.AwsSeacretAccessKey,
+		"",
+	)
 
 	cfg, err := config.LoadDefaultConfig(
 		context.TODO(),
-		config.WithSharedConfigProfile(PROFILE_NAME),
+		config.WithRegion(settings.AwsRegion),
+		config.WithCredentialsProvider(creds),
 	)
 
 	if err != nil {

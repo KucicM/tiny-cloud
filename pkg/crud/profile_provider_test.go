@@ -2,6 +2,7 @@ package crud_test
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
@@ -40,16 +41,18 @@ func TestCreateNewProfile(t *testing.T) {
 	out := &bytes.Buffer{}
 	in := &bytes.Buffer{}
 
-	in.Write([]byte("create-test-1\ntest-2\n"))
+	in.Write([]byte("create-test-1\ntest-2\n1\n"))
 
 	err := crud.CreateNewProfile(in, out)
 	if err != nil {
 		t.Errorf("unexpected error %s", err)
 	}
 
-	expected := "Name: \nDescription: \n"
+	expected := "Name: \nDescription: \nCloud\n\n1. aws\n2. gcp\n\nEnter a number: \n"
 	if out.String() != expected {
-		t.Errorf("expected:\n%s\n\ngot:\n%s\n", expected, out)
+		a := strings.ReplaceAll(out.String(), " ", "*")
+		e := strings.ReplaceAll(expected, " ", "*")
+		t.Errorf("expected:\n%s\n\ngot:\n%s\n %d %d", e, a, len(e), len(a))
 	}
 
 	out = &bytes.Buffer{}
