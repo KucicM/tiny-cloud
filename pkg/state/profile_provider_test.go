@@ -1,59 +1,79 @@
 package state_test
 
-// func TestPrityPrintProfiles(t *testing.T) {
-// 	_, cleaner := database()
-// 	defer cleaner()
+import (
+	"bytes"
+	"database/sql"
+	"os"
+	"strings"
+	"testing"
 
-// 	profile := &tinycloud.Profile{Name: "test-profile-1", Description: "test des"}
-// 	err := crud.SaveProfile(profile)
-// 	if err != nil {
-// 		t.Errorf("did not expect error %s", err)
-// 	}
+	"github.com/kucicm/tiny-cloud/pkg/data"
+	"github.com/kucicm/tiny-cloud/pkg/state"
+)
 
-// 	out := &bytes.Buffer{}
-// 	crud.PrityPrintAllProfiles(out)
+func database() (*sql.DB, func()) {
+	db := data.SetupDatabes("test.db")
+	cleaner := func() {
+		data.CloseDatabes()
+		os.Remove("test.db")
+	}
+	return db, cleaner
+}
 
-// 	expected := `+----------------+-------------+
-// | NAME           | DESCRIPTION |
-// +----------------+-------------+
-// | test-profile-1 | test des    |
-// +----------------+-------------+`
+func TestCreateNewProfile(t *testing.T) {
+	db, cleaner := database()
+	defer cleaner()
 
-// 	if expected != out.String() {
-// 		t.Errorf("expected:\n%s\n\ngot:\n%s\n", expected, out)
-// 	}
+	var count int
+	if err := db.QueryRow("SELECT count(*) FROM v_profiles;").Scan(&count); err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Errorf("expected count 0 got %d", count)
+	}
 
-// }
+	in := &bytes.Buffer{}
+	in.Write([]byte("test-name\n"))
+	in.Write([]byte("\n"))
+	in.Write([]byte("1\n")) // aws
+	in.Write([]byte("\n"))  // use default
+	in.Write([]byte("xxxx-xxxx-xxxx\n"))
+	in.Write([]byte("ffff-ffff-ffff\n"))
+	out := &bytes.Buffer{}
+	if err := state.CreateNewProfile(in, out); err != nil {
+		t.Error(err)
+	}
 
-// func TestCreateNewProfile(t *testing.T) {
-// 	_, cleaner := database()
-// 	defer cleaner()
+	expected := []string{
+		"Name:",
+		"Description:",
+		"Cloud",
+		"",
+		"1. aws",
+		"2. gcp",
+		"",
+		"Enter a number:",
+		"Region (Default is eu-west-1):",
+		"AWS Access Key ID:",
+		"AWS Secret Access Key:",
+		"",
+	}
 
-// 	out := &bytes.Buffer{}
-// 	in := &bytes.Buffer{}
+	lines := strings.Split(out.String(), "\n")
+	if len(lines) != len(expected) {
+		t.Errorf("missing lines \n%+v\n\nvs\n\n%+v", expected, lines)
+	} else {
+		for i, e := range expected {
+			if strings.TrimSpace(lines[i]) != e {
+				t.Errorf("expected %s got %s", e, lines[i])
+			}
+		}
+	}
 
-// 	in.Write([]byte("create-test-1\ntest-2\n1\n"))
-
-// 	err := crud.CreateNewProfile(in, out)
-// 	if err != nil {
-// 		t.Errorf("unexpected error %s", err)
-// 	}
-
-// 	expected := "Name: \nDescription: \nCloud\n\n1. aws\n2. gcp\n\nEnter a number: \n"
-// 	if out.String() != expected {
-// 		a := strings.ReplaceAll(out.String(), " ", "*")
-// 		e := strings.ReplaceAll(expected, " ", "*")
-// 		t.Errorf("expected:\n%s\n\ngot:\n%s\n %d %d", e, a, len(e), len(a))
-// 	}
-
-// 	out = &bytes.Buffer{}
-// 	crud.PrityPrintAllProfiles(out)
-// 	expected = `+---------------+-------------+
-// | NAME          | DESCRIPTION |
-// +---------------+-------------+
-// | create-test-1 | test-2      |
-// +---------------+-------------+`
-// 	if expected != out.String() {
-// 		t.Errorf("expected:\n%s\n\ngot:\n%s\n", expected, out)
-// 	}
-// }
+	if err := db.QueryRow("SELECT count(*) FROM v_profiles;").Scan(&count); err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Errorf("expected count 1 got %d", count)
+	}
+}

@@ -3,21 +3,14 @@ package state
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
+	"github.com/kucicm/tiny-cloud/pkg/data"
 	input "github.com/tcnksm/go-input"
 )
 
-func PrityPrintAllProfiles(writer io.Writer) error {
-	// profiles, err := GetAllProfiles()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// writer.Write([]byte(profiles.String()))
-	return nil
-}
-
+// menu to create profie, io/out via UI
 func CreateNewProfile(in io.Reader, out io.Writer) error {
 	ui := &input.UI{
 		Writer: out,
@@ -28,7 +21,6 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 
 	// name
 	name, err := ui.Ask("Name", &input.Options{
-		Default:     "",
 		Required:    true,
 		Loop:        true,
 		HideDefault: false,
@@ -41,7 +33,7 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 
 	// description
 	des, err := ui.Ask("Description", &input.Options{
-		Default:   "",
+		Required:  false,
 		HideOrder: true,
 	})
 
@@ -49,7 +41,7 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 		return err
 	}
 
-	// cloud
+	// // cloud
 	cloud, err := ui.Select("Cloud", tinycloud.SupportedClouds, &input.Options{
 		Required:  true,
 		Loop:      true,
@@ -59,21 +51,22 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 		return err
 	}
 
+	cloud = strings.ToLower(cloud)
 	cloudSettings, err := CreateNewCloudSettings(cloud, ui)
 	if err != nil {
 		return err
 	}
 
-	_ = &tinycloud.Profile{
+	profile := &tinycloud.Profile{
 		Name:        name,
 		Description: des,
 		Settings:    cloudSettings,
 	}
 
-	// return SaveProfile(profile)
-	return nil
+	return data.CreateProfile(profile)
 }
 
+// resolves which clouds should be created
 func CreateNewCloudSettings(cloud string, ui *input.UI) (*tinycloud.CloudSettings, error) {
 	switch cloud {
 	case "aws":
@@ -85,9 +78,10 @@ func CreateNewCloudSettings(cloud string, ui *input.UI) (*tinycloud.CloudSetting
 	return nil, nil
 }
 
+// aws implementation of settings
 func NewAwsCloudSettings(ui *input.UI) (*tinycloud.CloudSettings, error) {
-	regions := []string{"eu1"}
-	region, err := ui.Select("Region", regions, &input.Options{
+	region, err := ui.Ask("Region", &input.Options{
+		Default:   "eu-west-1",
 		Required:  true,
 		Loop:      true,
 		HideOrder: true,
@@ -100,7 +94,6 @@ func NewAwsCloudSettings(ui *input.UI) (*tinycloud.CloudSettings, error) {
 		Required:  true,
 		Loop:      true,
 		HideOrder: true,
-		Mask:      true,
 	})
 
 	if err != nil {
@@ -111,7 +104,6 @@ func NewAwsCloudSettings(ui *input.UI) (*tinycloud.CloudSettings, error) {
 		Required:  true,
 		Loop:      true,
 		HideOrder: true,
-		Mask:      true,
 	})
 
 	if err != nil {
@@ -126,3 +118,11 @@ func NewAwsCloudSettings(ui *input.UI) (*tinycloud.CloudSettings, error) {
 		AwsSeacretAccessKey: seacretKey,
 	}, nil
 }
+
+// list profiles
+
+// set profile to active
+
+// update profile
+
+// delete profile

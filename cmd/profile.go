@@ -35,10 +35,10 @@ func profileListCmd() *cobra.Command {
 		Short: "list existing profiles",
 		Long:  "list existing profiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := state.PrityPrintAllProfiles(os.Stdout); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+			// if err := state.PrityPrintAllProfiles(os.Stdout); err != nil {
+			// 	fmt.Println(err)
+			// 	os.Exit(1)
+			// }
 		},
 	}
 
@@ -72,10 +72,10 @@ func profileDeleteCmd() *cobra.Command {
 				return
 			}
 
-			if err := state.DeleteProfile(args[0]); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+			// if err := state.DeleteProfile(args[0]); err != nil {
+			// 	fmt.Println(err)
+			// 	os.Exit(1)
+			// }
 		},
 	}
 
