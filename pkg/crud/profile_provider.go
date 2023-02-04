@@ -1,42 +1,56 @@
 package crud
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"strings"
+	"io"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
+	input "github.com/tcnksm/go-input"
 )
 
-func ListProfiles() (tinycloud.Profiles, error) {
-	return GetAllProfiles()
+func PrityPrintAllProfiles(writer io.Writer) error {
+	profiles, err := GetAllProfiles()
+	if err != nil {
+		return err
+	}
+
+	writer.Write([]byte(profiles.String()))
+	return nil
 }
 
-func CreateNewProfile() error {
-	fmt.Println("Create new profile")
-	profile := &tinycloud.Profile{}
-	if err := setStrInput("Name: ", &profile.Name); err != nil {
-		return err
+func CreateNewProfile(in io.Reader, out io.Writer) error {
+	ui := &input.UI{
+		Writer: out,
+		Reader: in,
 	}
 
-	if err := setStrInput("Description: ", &profile.Description); err != nil {
-		return err
-	}
+	profile := &tinycloud.Profile{}
+	var err error
 
 	// name
+	profile.Name, err = ui.Ask("Name", &input.Options{
+		Default:     "",
+		Required:    true,
+		Loop:        true,
+		HideDefault: false,
+		HideOrder:   true,
+	})
+
+	if err != nil {
+		return err
+	}
+
 	// description
+	profile.Description, err = ui.Ask("Description", &input.Options{
+		Default:   "",
+		Required:  true,
+		Loop:      true,
+		HideOrder: true,
+	})
+
+	if err != nil {
+		return err
+	}
+
 	// cloud
 	return SaveProfile(profile)
-}
-
-func setStrInput(prompt string, f *string) error {
-	fmt.Print(prompt)
-	reader := bufio.NewReader(os.Stdin)
-	in, err := reader.ReadString('\n')
-	if err == nil {
-		*f = strings.TrimSuffix(in, "\n")
-	}
-	return err
-
 }

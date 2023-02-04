@@ -34,13 +34,10 @@ func profileListCmd() *cobra.Command {
 		Short: "list existing profiles",
 		Long:  "list existing profiles",
 		Run: func(cmd *cobra.Command, args []string) {
-
-			profiles, err := crud.ListProfiles()
-			if err != nil {
+			if err := crud.PrityPrintAllProfiles(os.Stdout); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			fmt.Println(profiles)
 		},
 	}
 
@@ -53,7 +50,7 @@ func profileNewCmd() *cobra.Command {
 		Short: "new new profiles",
 		Long:  "create ne profile",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := crud.CreateNewProfile(); err != nil {
+			if err := crud.CreateNewProfile(os.Stdin, os.Stdout); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
