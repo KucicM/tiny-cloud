@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/kucicm/tiny-cloud/pkg/crud"
 	"github.com/spf13/cobra"
@@ -47,10 +48,31 @@ func profileListCmd() *cobra.Command {
 func profileNewCmd() *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:   "new",
-		Short: "new new profiles",
-		Long:  "create ne profile",
+		Short: "create new profile",
+		Long:  "create new profile",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := crud.CreateNewProfile(os.Stdin, os.Stdout); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		},
+	}
+
+	return cmd
+}
+
+func profileDeleteCmd() *cobra.Command {
+	var cmd = &cobra.Command{
+		Use:   "delete",
+		Short: "delete profile",
+		Long:  "tiny-cloud profile delete <profile-name>",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 || len(strings.TrimSpace(args[0])) == 0 {
+				fmt.Println("must provide  profile name")
+				return
+			}
+
+			if err := crud.DeleteProfile(args[0]); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}

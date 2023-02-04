@@ -39,6 +39,10 @@ func SetupDatabes(url string) *sql.DB {
 		log.Fatalln(err)
 	}
 
+	if err := createProfileView(); err != nil {
+		log.Fatalln(err)
+	}
+
 	return db
 }
 
@@ -62,10 +66,10 @@ func CloseDatabes() {
 func setupProfileTabel() error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Profiles (
 		Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-		Name TEXT NOT NULL,
+		Name TEXT NOT NULL UNIQUE,
 		Description TEXT NOT NULL,
 		Active BOOL NOT NULL DEFAULT FALSE,
-		CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+		Created DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`)
 	return err
 }
@@ -78,5 +82,17 @@ func setupAwsSettigsTable() error {
 		AccessKey TEXT NOT NULL,
 		SecretAccessKey TEXT NOT NULL
 	);`)
+	return err
+}
+
+func createProfileView() error {
+	_, _ = db.Exec("DROP VIEW IF EXISTS v_profiles;")
+	_, err := db.Exec(`CREATE VIEW v_profiles AS
+	SELECT 
+		p.Id, p.Name, p.Description, p.Active, p.Created,
+		aws.Region AS AwsRegion, aws.AccessKey AS AwsAccessKey, aws.SecretAccessKey AS AwsSecretAccessKey
+	FROM profiles AS p 
+	LEFT OUTER JOIN AwsSettings AS aws ON p.Id = aws.ProfileId
+	`)
 	return err
 }

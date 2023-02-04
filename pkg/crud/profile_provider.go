@@ -9,12 +9,12 @@ import (
 )
 
 func PrityPrintAllProfiles(writer io.Writer) error {
-	profiles, err := GetAllProfiles()
-	if err != nil {
-		return err
-	}
+	// profiles, err := GetAllProfiles()
+	// if err != nil {
+	// 	return err
+	// }
 
-	writer.Write([]byte(profiles.String()))
+	// writer.Write([]byte(profiles.String()))
 	return nil
 }
 
@@ -42,8 +42,6 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 	// description
 	des, err := ui.Ask("Description", &input.Options{
 		Default:   "",
-		Required:  true,
-		Loop:      true,
 		HideOrder: true,
 	})
 
@@ -66,13 +64,14 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 		return err
 	}
 
-	profile := &tinycloud.Profile{
+	_ = &tinycloud.Profile{
 		Name:        name,
 		Description: des,
-		Cloud:       cloud,
+		Settings:    cloudSettings,
 	}
 
-	return Save(profile, cloudSettings)
+	// return SaveProfile(profile)
+	return nil
 }
 
 func CreateNewCloudSettings(cloud string, ui *input.UI) (*tinycloud.CloudSettings, error) {
