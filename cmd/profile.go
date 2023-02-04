@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kucicm/tiny-cloud/pkg/crud"
+	"github.com/kucicm/tiny-cloud/pkg/state"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ func profileListCmd() *cobra.Command {
 		Short: "list existing profiles",
 		Long:  "list existing profiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := crud.PrityPrintAllProfiles(os.Stdout); err != nil {
+			if err := state.PrityPrintAllProfiles(os.Stdout); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
@@ -51,7 +51,7 @@ func profileNewCmd() *cobra.Command {
 		Short: "create new profile",
 		Long:  "create new profile",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := crud.CreateNewProfile(os.Stdin, os.Stdout); err != nil {
+			if err := state.CreateNewProfile(os.Stdin, os.Stdout); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
@@ -72,7 +72,7 @@ func profileDeleteCmd() *cobra.Command {
 				return
 			}
 
-			if err := crud.DeleteProfile(args[0]); err != nil {
+			if err := state.DeleteProfile(args[0]); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}

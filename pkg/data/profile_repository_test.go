@@ -1,4 +1,4 @@
-package crud_test
+package data_test
 
 import (
 	"database/sql"
@@ -8,13 +8,13 @@ import (
 	"testing"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
-	"github.com/kucicm/tiny-cloud/pkg/crud"
+	"github.com/kucicm/tiny-cloud/pkg/data"
 )
 
 func database() (*sql.DB, func()) {
-	db := crud.SetupDatabes("test.db")
+	db := data.SetupDatabes("test.db")
 	cleaner := func() {
-		crud.CloseDatabes()
+		data.CloseDatabes()
 		os.Remove("test.db")
 	}
 	return db, cleaner
@@ -42,7 +42,7 @@ func TestCreateAwsProfile(t *testing.T) {
 		},
 	}
 
-	if err := crud.CreateProfile(profile); err != nil {
+	if err := data.CreateProfile(profile); err != nil {
 		t.Error(err)
 	}
 
@@ -77,7 +77,7 @@ func TestNonUniqueProfileName(t *testing.T) {
 		},
 	}
 
-	if err := crud.CreateProfile(profile); err != nil {
+	if err := data.CreateProfile(profile); err != nil {
 		t.Error(err)
 	}
 
@@ -89,7 +89,7 @@ func TestNonUniqueProfileName(t *testing.T) {
 		t.Errorf("expected 1 got %d", count)
 	}
 
-	if err := crud.CreateProfile(profile); err == nil {
+	if err := data.CreateProfile(profile); err == nil {
 		t.Error("expected error")
 	}
 }
@@ -98,7 +98,7 @@ func TestGetProfilesWithNoProfiles(t *testing.T) {
 	_, cleaner := database()
 	defer cleaner()
 
-	profiles, err := crud.GetProfiles()
+	profiles, err := data.GetProfiles()
 	if err != nil {
 		t.Error(err)
 	}
@@ -126,13 +126,13 @@ func TestGetMultipleProfiles(t *testing.T) {
 	}
 
 	for _, profile := range profiles {
-		err := crud.CreateProfile(profile)
+		err := data.CreateProfile(profile)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
-	actual, err := crud.GetProfiles()
+	actual, err := data.GetProfiles()
 	if err != nil {
 		t.Error(err)
 	}
@@ -157,14 +157,14 @@ func TestGetDefaultActiveProfile(t *testing.T) {
 			},
 		}
 
-		err := crud.CreateProfile(profile)
+		err := data.CreateProfile(profile)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
 	// should return latest profile
-	actual, err := crud.GetActiveProfile()
+	actual, err := data.GetActiveProfile()
 	if err != nil {
 		t.Error(err)
 	}
@@ -189,7 +189,7 @@ func TestSetActiveAndGetActive(t *testing.T) {
 			},
 		}
 
-		err := crud.CreateProfile(profile)
+		err := data.CreateProfile(profile)
 		if err != nil {
 			t.Error(err)
 		}
@@ -199,11 +199,11 @@ func TestSetActiveAndGetActive(t *testing.T) {
 		}
 	}
 
-	if err := crud.UpdateProfileToActive(expected.Name); err != nil {
+	if err := data.UpdateProfileToActive(expected.Name); err != nil {
 		t.Error(err)
 	}
 
-	actual, err := crud.GetActiveProfile()
+	actual, err := data.GetActiveProfile()
 	if err != nil {
 		t.Error(err)
 	}
@@ -235,7 +235,7 @@ func TestUpdateNonExistingProfile(t *testing.T) {
 		},
 	}
 
-	if err := crud.UpdateProfile(oldP, newP); err == nil {
+	if err := data.UpdateProfile(oldP, newP); err == nil {
 		t.Error("expected error")
 	}
 
@@ -264,17 +264,17 @@ func TestUpdateExistingProfile(t *testing.T) {
 	}
 
 	// create
-	if err := crud.CreateProfile(oldP); err != nil {
+	if err := data.CreateProfile(oldP); err != nil {
 		t.Error(err)
 	}
 
 	// update
-	if err := crud.UpdateProfile(oldP, newP); err != nil {
+	if err := data.UpdateProfile(oldP, newP); err != nil {
 		t.Error(err)
 	}
 
 	// get
-	acutal, err := crud.GetActiveProfile()
+	acutal, err := data.GetActiveProfile()
 	if err != nil {
 		t.Error(err)
 	}
@@ -290,7 +290,7 @@ func TestDeleteNonExistingProfile(t *testing.T) {
 	_, cleaner := database()
 	defer cleaner()
 
-	err := crud.DeleteProfile("test")
+	err := data.DeleteProfile("test")
 	if err == nil {
 		t.Error("expected error while deleting non existing profile")
 	}
@@ -309,7 +309,7 @@ func TestDeleteExistingProfile(t *testing.T) {
 		},
 	}
 
-	err := crud.CreateProfile(prof)
+	err := data.CreateProfile(prof)
 
 	if err != nil {
 		t.Error(err)
@@ -324,7 +324,7 @@ func TestDeleteExistingProfile(t *testing.T) {
 		t.Errorf("expected 1 got %d", count)
 	}
 
-	if err = crud.DeleteProfile(prof.Name); err != nil {
+	if err = data.DeleteProfile(prof.Name); err != nil {
 		t.Error(err)
 	}
 

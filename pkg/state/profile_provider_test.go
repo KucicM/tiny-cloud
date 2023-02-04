@@ -1,4 +1,4 @@
-package crud_test
+package state_test
 
 // func TestPrityPrintProfiles(t *testing.T) {
 // 	_, cleaner := database()
