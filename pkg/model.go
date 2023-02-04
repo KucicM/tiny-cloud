@@ -11,9 +11,10 @@ type Profiles []*Profile
 
 func (ps Profiles) String() string {
 	tw := table.NewWriter()
-	tw.AppendHeader(table.Row{"Name", "Description"})
+	tw.AppendHeader(table.Row{"Name", "Description", "Cloud"})
 	for _, profile := range []*Profile(ps) {
-		tw.AppendRow(table.Row{profile.Name, profile.Description})
+		cloud := profile.Settings.ResolveCloudName()
+		tw.AppendRow(table.Row{profile.Name, profile.Description, cloud})
 	}
 	tw.SetAutoIndex(false)
 	return tw.Render()

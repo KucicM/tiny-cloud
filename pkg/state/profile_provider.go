@@ -120,6 +120,9 @@ func NewAwsCloudSettings(ui *input.UI) (*tinycloud.CloudSettings, error) {
 }
 
 // list profiles
+func ListProfiles() (tinycloud.Profiles, error) {
+	return data.GetProfiles()
+}
 
 // set profile to active
 

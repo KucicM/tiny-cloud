@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 	"github.com/kucicm/tiny-cloud/pkg/data"
 	"github.com/kucicm/tiny-cloud/pkg/state"
 )
@@ -75,5 +76,106 @@ func TestCreateNewProfile(t *testing.T) {
 	}
 	if count != 1 {
 		t.Errorf("expected count 1 got %d", count)
+	}
+}
+
+func TestListNoProfiles(t *testing.T) {
+	_, cleaner := database()
+	defer cleaner()
+
+	profiles, err := state.ListProfiles()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(profiles) != 0 {
+		t.Errorf("expected to profiles got %d profiles", len(profiles))
+	}
+
+	expecetd := `+------+-------------+-------+
+| NAME | DESCRIPTION | CLOUD |
++------+-------------+-------+
++------+-------------+-------+`
+	if profiles.String() != expecetd {
+		t.Errorf("expecetd:\n%s\ngot:\n%s", expecetd, profiles.String())
+	}
+}
+
+func TestListAwsCloud(t *testing.T) {
+	_, cleaner := database()
+	defer cleaner()
+	err := data.CreateProfile(&tinycloud.Profile{
+		Name:        "test-name",
+		Description: "test-des",
+		Settings: &tinycloud.CloudSettings{
+			AwsRegion:           "reg-1",
+			AwsAccessKeyId:      "xxxx-xxx-xxx",
+			AwsSeacretAccessKey: "yyy-yyy-yy",
+		},
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	profiles, err := state.ListProfiles()
+	if err != nil {
+		t.Error(err)
+	}
+
+	expecetd := `+-----------+-------------+-------+
+| NAME      | DESCRIPTION | CLOUD |
++-----------+-------------+-------+
+| test-name | test-des    | aws   |
++-----------+-------------+-------+`
+	if profiles.String() != expecetd {
+		t.Errorf("expecetd:\n%s\ngot:\n%s", expecetd, profiles.String())
+	}
+}
+
+func TestListMultipleProfiles(t *testing.T) {
+	_, cleaner := database()
+	defer cleaner()
+	err := data.CreateProfile(&tinycloud.Profile{
+		Name:        "test-name",
+		Description: "test-des",
+		Settings: &tinycloud.CloudSettings{
+			AwsRegion:           "reg-1",
+			AwsAccessKeyId:      "xxxx-xxx-xxx",
+			AwsSeacretAccessKey: "yyy-yyy-yy",
+		},
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = data.CreateProfile(&tinycloud.Profile{
+		Name:        "test-name-2",
+		Description: "test-des-2",
+		Settings: &tinycloud.CloudSettings{
+			AwsRegion:           "reg0",
+			AwsAccessKeyId:      "aaaa-aaaa-aaa",
+			AwsSeacretAccessKey: "oooo-oooo-oooo",
+		},
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	profiles, err := state.ListProfiles()
+	if err != nil {
+		t.Error(err)
+	}
+
+	expecetd := `+-------------+-------------+-------+
+| NAME        | DESCRIPTION | CLOUD |
++-------------+-------------+-------+
+| test-name   | test-des    | aws   |
+| test-name-2 | test-des-2  | aws   |
++-------------+-------------+-------+`
+	if profiles.String() != expecetd {
+		t.Errorf("expecetd:\n%s\ngot:\n%s", expecetd, profiles.String())
 	}
 }
