@@ -5,7 +5,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func ListProfiles() ([]*tinycloud.Profile, error) {
+func ListProfiles() (tinycloud.Profiles, error) {
 	rows, err := db.Query("SELECT Id, Name, Description FROM profiles")
 	if err != nil {
 		return nil, err

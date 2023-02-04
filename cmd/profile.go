@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/kucicm/tiny-cloud/pkg/data"
 	"github.com/spf13/cobra"
@@ -21,8 +22,13 @@ var profileListCmd = &cobra.Command{
 	Short: "list existing profiles",
 	Long:  "list existing profiles",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("profile list called")
-		data.ListProfiles()
+
+		profiles, err := data.ListProfiles()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println(profiles)
 	},
 }
 
