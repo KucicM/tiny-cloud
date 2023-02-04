@@ -1,4 +1,4 @@
-package data
+package crud
 
 import (
 	"database/sql"
@@ -25,9 +25,13 @@ func SetupDatabes(url string) *sql.DB {
 		url = path.Join(p, "tiny-cloud.db")
 	}
 
-	openDatabase(url)
+	if err := openDatabase(url); err != nil {
+		log.Fatalln(err)
+	}
 
-	SetupProfileTabel()
+	if err := setupProfileTabel(); err != nil {
+		log.Fatalln(err)
+	}
 
 	return db
 }
@@ -49,7 +53,7 @@ func CloseDatabes() {
 	}
 }
 
-func SetupProfileTabel() error {
+func setupProfileTabel() error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Profiles (
 		Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		Name TEXT NOT NULL,

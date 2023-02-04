@@ -1,4 +1,4 @@
-package data_test
+package crud_test
 
 import (
 	"database/sql"
@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
-	"github.com/kucicm/tiny-cloud/pkg/data"
+	"github.com/kucicm/tiny-cloud/pkg/crud"
 )
 
 func database() (*sql.DB, func()) {
-	db := data.SetupDatabes("test.db")
+	db := crud.SetupDatabes("test.db")
 	cleaner := func() {
 		_, err := db.Exec("DELETE FROM Profiles")
 		if err != nil {
@@ -23,7 +23,7 @@ func database() (*sql.DB, func()) {
 func TestListNoProfiles(t *testing.T) {
 	_, cleaner := database()
 	defer cleaner()
-	profiles, err := data.ListProfiles()
+	profiles, err := crud.GetAllProfiles()
 	if err != nil {
 		t.Errorf("did not expect error %s", err)
 	}
@@ -37,12 +37,12 @@ func TestAddAndListProfiles(t *testing.T) {
 	_, cleaner := database()
 	defer cleaner()
 	profile := &tinycloud.Profile{Name: "test-profile-1", Description: "test des"}
-	err := data.AddProfile(profile)
+	err := crud.SaveProfile(profile)
 	if err != nil {
 		t.Errorf("did not expect error %s", err)
 	}
 
-	profiles, err := data.ListProfiles()
+	profiles, err := crud.GetAllProfiles()
 	if err != nil {
 		t.Errorf("did not expect error %s", err)
 	}

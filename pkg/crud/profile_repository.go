@@ -1,11 +1,10 @@
-package data
+package crud
 
 import (
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
-	_ "github.com/mattn/go-sqlite3"
 )
 
-func ListProfiles() (tinycloud.Profiles, error) {
+func GetAllProfiles() (tinycloud.Profiles, error) {
 	rows, err := db.Query("SELECT Id, Name, Description FROM profiles")
 	if err != nil {
 		return nil, err
@@ -24,8 +23,8 @@ func ListProfiles() (tinycloud.Profiles, error) {
 	return profiles, nil
 }
 
-func AddProfile(newProfile *tinycloud.Profile) error {
+func SaveProfile(profile *tinycloud.Profile) error {
 	query := "INSERT INTO profiles (Name, Description) VALUES (?, ?);"
-	_, err := db.Exec(query, newProfile.Name, newProfile.Description)
+	_, err := db.Exec(query, profile.Name, profile.Description)
 	return err
 }
