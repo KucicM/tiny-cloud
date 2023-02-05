@@ -11,10 +11,9 @@ type Profiles []*Profile
 
 func (ps Profiles) String() string {
 	tw := table.NewWriter()
-	tw.AppendHeader(table.Row{"Name", "Description", "Cloud"})
+	tw.AppendHeader(table.Row{"Name", "Description", "Cloud", "Active"})
 	for _, profile := range []*Profile(ps) {
-		cloud := profile.Settings.ResolveCloudName()
-		tw.AppendRow(table.Row{profile.Name, profile.Description, cloud})
+		tw.AppendRow(profile.toBasicRow())
 	}
 	tw.SetAutoIndex(false)
 	return tw.Render()
@@ -23,7 +22,17 @@ func (ps Profiles) String() string {
 type Profile struct {
 	Name        string
 	Description string
+	Active      bool
 	Settings    *CloudSettings
+}
+
+func (p *Profile) toBasicRow() table.Row {
+	cloud := p.Settings.ResolveCloudName()
+	active := ""
+	if p.Active {
+		active = "x"
+	}
+	return table.Row{p.Name, p.Description, cloud, active}
 }
 
 func (p *Profile) Valid() error {

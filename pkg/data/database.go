@@ -89,9 +89,9 @@ func createProfileView() error {
 	_, _ = db.Exec("DROP VIEW IF EXISTS v_profiles;")
 	_, err := db.Exec(`CREATE VIEW v_profiles AS
 	SELECT 
-		p.Id, p.Name, p.Description, p.Active, p.Created,
+		p.Id, p.Name, p.Description, ((ROW_NUMBER() OVER()) = 1) AS Active,
 		aws.Region AS AwsRegion, aws.AccessKey AS AwsAccessKey, aws.SecretAccessKey AS AwsSecretAccessKey
-	FROM profiles AS p 
+	FROM (select * from profiles order by Active DESC, Id DESC) AS p 
 	LEFT OUTER JOIN AwsSettings AS aws ON p.Id = aws.ProfileId
 	`)
 	return err

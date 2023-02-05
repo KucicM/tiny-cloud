@@ -32,10 +32,9 @@ func CreateProfile(profile *tinycloud.Profile) error {
 func GetProfiles() (tinycloud.Profiles, error) {
 	rows, err := db.Query(`
 	SELECT 
-		p.Name, p.Description,
-		aws.Region, aws.AccessKey, aws.SecretAccessKey
-	FROM profiles AS p 
-	LEFT OUTER JOIN AwsSettings AS aws ON p.Id = aws.ProfileId`)
+		Name, Description, Active,
+		AwsRegion, AwsAccessKey, AwsSecretAccessKey
+	FROM v_profiles;`)
 
 	if err != nil {
 		return nil, err
@@ -47,7 +46,7 @@ func GetProfiles() (tinycloud.Profiles, error) {
 		settings := &tinycloud.CloudSettings{}
 		profile := &tinycloud.Profile{Settings: settings}
 		if err = rows.Scan(
-			&profile.Name, &profile.Description,
+			&profile.Name, &profile.Description, &profile.Active,
 			&settings.AwsRegion, &settings.AwsAccessKeyId, &settings.AwsSeacretAccessKey,
 		); err == nil {
 			profiles = append(profiles, profile)
@@ -82,16 +81,15 @@ func UpdateProfileToActive(profileName string) error {
 func GetActiveProfile() (*tinycloud.Profile, error) {
 	query := `
 	SELECT 
-		Name, Description,
+		Name, Description, Active,
 		AwsRegion, AwsAccessKey, AwsSecretAccessKey
 	FROM v_profiles
-	ORDER BY Active DESC, Id DESC
-	LIMIT 1`
+	WHERE Active = 1`
 
 	settings := &tinycloud.CloudSettings{}
 	profile := &tinycloud.Profile{Settings: settings}
 	err := db.QueryRow(query).Scan(
-		&profile.Name, &profile.Description,
+		&profile.Name, &profile.Description, &profile.Active,
 		&settings.AwsRegion, &settings.AwsAccessKeyId, &settings.AwsSeacretAccessKey,
 	)
 	if err != nil {

@@ -92,10 +92,10 @@ func TestListNoProfiles(t *testing.T) {
 		t.Errorf("expected to profiles got %d profiles", len(profiles))
 	}
 
-	expecetd := `+------+-------------+-------+
-| NAME | DESCRIPTION | CLOUD |
-+------+-------------+-------+
-+------+-------------+-------+`
+	expecetd := `+------+-------------+-------+--------+
+| NAME | DESCRIPTION | CLOUD | ACTIVE |
++------+-------------+-------+--------+
++------+-------------+-------+--------+`
 	if profiles.String() != expecetd {
 		t.Errorf("expecetd:\n%s\ngot:\n%s", expecetd, profiles.String())
 	}
@@ -123,11 +123,11 @@ func TestListAwsCloud(t *testing.T) {
 		t.Error(err)
 	}
 
-	expecetd := `+-----------+-------------+-------+
-| NAME      | DESCRIPTION | CLOUD |
-+-----------+-------------+-------+
-| test-name | test-des    | aws   |
-+-----------+-------------+-------+`
+	expecetd := `+-----------+-------------+-------+--------+
+| NAME      | DESCRIPTION | CLOUD | ACTIVE |
++-----------+-------------+-------+--------+
+| test-name | test-des    | aws   | x      |
++-----------+-------------+-------+--------+`
 	if profiles.String() != expecetd {
 		t.Errorf("expecetd:\n%s\ngot:\n%s", expecetd, profiles.String())
 	}
@@ -169,12 +169,12 @@ func TestListMultipleProfiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	expecetd := `+-------------+-------------+-------+
-| NAME        | DESCRIPTION | CLOUD |
-+-------------+-------------+-------+
-| test-name   | test-des    | aws   |
-| test-name-2 | test-des-2  | aws   |
-+-------------+-------------+-------+`
+	expecetd := `+-------------+-------------+-------+--------+
+| NAME        | DESCRIPTION | CLOUD | ACTIVE |
++-------------+-------------+-------+--------+
+| test-name-2 | test-des-2  | aws   | x      |
+| test-name   | test-des    | aws   |        |
++-------------+-------------+-------+--------+`
 	if profiles.String() != expecetd {
 		t.Errorf("expecetd:\n%s\ngot:\n%s", expecetd, profiles.String())
 	}

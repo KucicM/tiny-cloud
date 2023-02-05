@@ -125,20 +125,24 @@ func TestGetMultipleProfiles(t *testing.T) {
 		profiles = append(profiles, profile)
 	}
 
-	for _, profile := range profiles {
+	expected := make([]*tinycloud.Profile, len(profiles))
+	for i, profile := range profiles {
 		err := data.CreateProfile(profile)
 		if err != nil {
 			t.Error(err)
 		}
+
+		expected[len(profiles)-i-1] = profile
 	}
+	expected[0].Active = true
 
 	actual, err := data.GetProfiles()
 	if err != nil {
 		t.Error(err)
 	}
 
-	if !reflect.DeepEqual(tinycloud.Profiles(profiles), actual) {
-		t.Errorf("expected:\n%+v\nGot:\n%+v", tinycloud.Profiles(profiles), actual)
+	if !reflect.DeepEqual(tinycloud.Profiles(expected), actual) {
+		t.Errorf("expected:\n%+v\nGot:\n%+v", tinycloud.Profiles(expected), actual)
 	}
 }
 
@@ -169,6 +173,7 @@ func TestGetDefaultActiveProfile(t *testing.T) {
 		t.Error(err)
 	}
 
+	profile.Active = true
 	if !reflect.DeepEqual(actual, profile) {
 		t.Errorf("expected:\n%+v\ngot:\n%+v\n", profile, actual)
 	}
@@ -196,6 +201,7 @@ func TestSetActiveAndGetActive(t *testing.T) {
 
 		if i == 2 {
 			expected = profile
+			expected.Active = true
 		}
 	}
 
@@ -279,6 +285,7 @@ func TestUpdateExistingProfile(t *testing.T) {
 		t.Error(err)
 	}
 
+	newP.Active = true
 	if !reflect.DeepEqual(newP, acutal) {
 		t.Errorf("expected:\n%+v\ngot:\n%+v\n", newP, acutal)
 		t.Errorf("expected:\n%+v\ngot:\n%+v\n", newP.Settings, acutal.Settings)
