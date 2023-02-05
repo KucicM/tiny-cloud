@@ -28,6 +28,39 @@ func CreateProfile(profile *tinycloud.Profile) error {
 	return tx.Commit()
 }
 
+func insertNewProfile(tx *sql.Tx, profile *tinycloud.Profile) error {
+	query := "INSERT INTO Profiles (Name, Description) VALUES (?, ?)"
+	res, err := tx.Exec(query, profile.Name, profile.Description)
+	if err != nil {
+		return err
+	}
+
+	profileId, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	settigns := profile.Settings
+	cloud := settigns.ResolveCloudName()
+	switch cloud {
+	case "aws":
+		query = `INSERT INTO AwsSettings (ProfileId, Region, AccessKey, SecretAccessKey)
+			VALUES (?, ?, ?, ?);`
+		_, err = tx.Exec(
+			query,
+			profileId,
+			settigns.AwsRegion,
+			settigns.AwsAccessKeyId,
+			settigns.AwsSeacretAccessKey,
+		)
+		return err
+	default:
+		return fmt.Errorf("unsupported cloud '%s'", cloud)
+	}
+}
+
+
+
 // return all profiles from database
 func GetProfiles() (tinycloud.Profiles, error) {
 	rows, err := db.Query(`
@@ -96,75 +129,6 @@ func GetActiveProfile() (*tinycloud.Profile, error) {
 		return nil, err
 	}
 	return profile, nil
-}
-
-// replaces old profile (oldP) with values from new profile (newP)
-// returns error if old profile does not exists or
-// if new profile name is already taken by other profile
-func UpdateProfile(oldP, newP *tinycloud.Profile) error {
-	if err := oldP.Valid(); err != nil {
-		return err
-	}
-
-	if err := newP.Valid(); err != nil {
-		return err
-	}
-
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	err = func() error {
-		// perform delete followed by insert
-		if err := deleteProfile(tx, oldP.Name); err != nil {
-			return err
-		}
-
-		return insertNewProfile(tx, newP)
-	}()
-
-	if err == sql.ErrNoRows {
-		return fmt.Errorf("no profile with name '%s'", oldP.Name)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-func insertNewProfile(tx *sql.Tx, profile *tinycloud.Profile) error {
-	query := "INSERT INTO Profiles (Name, Description) VALUES (?, ?)"
-	res, err := tx.Exec(query, profile.Name, profile.Description)
-	if err != nil {
-		return err
-	}
-
-	profileId, err := res.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	settigns := profile.Settings
-	cloud := settigns.ResolveCloudName()
-	switch cloud {
-	case "aws":
-		query = `INSERT INTO AwsSettings (ProfileId, Region, AccessKey, SecretAccessKey)
-			VALUES (?, ?, ?, ?);`
-		_, err = tx.Exec(
-			query,
-			profileId,
-			settigns.AwsRegion,
-			settigns.AwsAccessKeyId,
-			settigns.AwsSeacretAccessKey,
-		)
-		return err
-	default:
-		return fmt.Errorf("unsupported cloud '%s'", cloud)
-	}
 }
 
 // deletes profile and settings,

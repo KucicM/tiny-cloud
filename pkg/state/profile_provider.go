@@ -126,6 +126,4 @@ func ListProfiles() (tinycloud.Profiles, error) {
 
 // set profile to active
 
-// update profile
-
 // delete profile
