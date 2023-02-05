@@ -143,11 +143,9 @@ func SetActive(profileName string) error {
 }
 
 // delete profile
-func DeleteProfile(profileName string) error {
-	profileName = strings.TrimSpace(profileName)
-	if profileName == "" {
-		return fmt.Errorf("provide profile name")
+func DeleteProfile(profileNames ...string) error {
+	for _, profileName := range profileNames {
+		_ = data.DeleteProfile(profileName)
 	}
-
-	return data.DeleteProfile(profileName)
+	return nil
 }

@@ -9,7 +9,7 @@ import (
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().BoolP("debug", "b", false, "print debug states")
+	// rootCmd.PersistentFlags().BoolP("debug", "b", false, "print debug states")
 }
 
 var rootCmd = &cobra.Command{
