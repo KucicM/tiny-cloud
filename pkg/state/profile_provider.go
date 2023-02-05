@@ -125,5 +125,13 @@ func ListProfiles() (tinycloud.Profiles, error) {
 }
 
 // set profile to active
+func SetActive(profileName string) error {
+	profileName = strings.TrimSpace(profileName)
+	if profileName == "" {
+		return fmt.Errorf("provide profile name")
+	}
+
+	return data.UpdateProfileToActive(profileName)
+}
 
 // delete profile
