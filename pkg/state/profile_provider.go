@@ -25,6 +25,14 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 		Loop:        true,
 		HideDefault: false,
 		HideOrder:   true,
+		ValidateFunc: func(name string) error {
+			if ok, err := data.DoseProfileExists(name); err != nil {
+				return err
+			} else if ok {
+				return fmt.Errorf("profile '%s' already exists", name)
+			}
+			return nil
+		},
 	})
 
 	if err != nil {

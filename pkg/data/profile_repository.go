@@ -59,8 +59,6 @@ func insertNewProfile(tx *sql.Tx, profile *tinycloud.Profile) error {
 	}
 }
 
-
-
 // return all profiles from database
 func GetProfiles() (tinycloud.Profiles, error) {
 	rows, err := db.Query(`
@@ -169,4 +167,18 @@ func deleteProfile(tx *sql.Tx, profileName string) error {
 		return err
 	}
 	return nil
+}
+
+func DoseProfileExists(profileName string) (bool, error) {
+	var id int
+	err := db.QueryRow("SELECT Id FROM v_profiles WHERE Name = ?;", profileName).Scan(&id)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
