@@ -90,3 +90,9 @@ var SupportedClouds []string = []string{
 func IsStrEmpty(str string) bool {
 	return len(strings.TrimSpace(str)) == 0
 }
+
+type RunRequest struct {
+	LocalFilesPath string
+	VmType         string
+	DataOutPath    string
+}
