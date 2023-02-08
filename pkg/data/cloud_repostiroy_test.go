@@ -1,6 +1,7 @@
 package data_test
 
 import (
+	"strings"
 	"testing"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
@@ -35,6 +36,10 @@ func TestGetNewRunId(t *testing.T) {
 			t.Errorf("id already exists %s", id)
 		} else {
 			unique[id] = true
+		}
+
+		if !strings.HasPrefix(id, profile.Name) {
+			t.Errorf("id %s dose not have profix %s", id, profile.Name)
 		}
 	}
 
