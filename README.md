@@ -3,6 +3,8 @@
 
 Run task on cloud VMs.
 
+NOTE: Work in progress!
+
 ## Setup
 
 ### AWS
