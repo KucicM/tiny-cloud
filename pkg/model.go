@@ -96,3 +96,14 @@ type RunRequest struct {
 	VmType         string
 	DataOutPath    string
 }
+
+type TaskDefinition struct {
+	LocalFilesPath string
+	DataOutPath    string
+	DNSName        string
+	SSHKey         []byte
+}
+
+type Vm interface {
+	Run(TaskDefinition)
+}

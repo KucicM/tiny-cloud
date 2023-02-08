@@ -123,6 +123,11 @@ func GetActiveProfile() (*tinycloud.Profile, error) {
 		&profile.Name, &profile.Description, &profile.Active,
 		&settings.AwsRegion, &settings.AwsAccessKeyId, &settings.AwsSeacretAccessKey,
 	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("there are no profiles, create new one")
+	}
+
 	if err != nil {
 		return nil, err
 	}

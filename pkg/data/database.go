@@ -43,6 +43,14 @@ func SetupDatabes(url string) *sql.DB {
 		log.Fatalln(err)
 	}
 
+	if err := createRunLogsTable(); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := createRunIdView(); err != nil {
+		log.Fatalln(err)
+	}
+
 	return db
 }
 
@@ -93,6 +101,29 @@ func createProfileView() error {
 		aws.Region AS AwsRegion, aws.AccessKey AS AwsAccessKey, aws.SecretAccessKey AS AwsSecretAccessKey
 	FROM (select * from profiles order by Active DESC, Id DESC) AS p 
 	LEFT OUTER JOIN AwsSettings AS aws ON p.Id = aws.ProfileId
+	`)
+	return err
+}
+
+func createRunLogsTable() error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS RunLogs (
+		Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		ProfileId NOT NULL,
+		Created DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`)
+	return err
+}
+
+func createRunIdView() error {
+	_, _ = db.Exec("DROP VIEW IF EXISTS v_runIds;")
+	_, err := db.Exec(`CREATE VIEW v_runIds AS
+	SELECT 
+		log.Id AS runId, 
+		p.Name || '-' || log.Id AS RunIdHuman, 
+		p.Name AS ProfileName,
+		log.Created Created
+	FROM Profiles AS p
+	JOIN RunLogs AS log ON p.Id = log.ProfileId
 	`)
 	return err
 }

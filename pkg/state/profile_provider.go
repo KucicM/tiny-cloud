@@ -149,3 +149,7 @@ func DeleteProfile(profileNames ...string) error {
 	}
 	return nil
 }
+
+func GetActiveProfile() (*tinycloud.Profile, error) {
+	return data.GetActiveProfile()
+}
