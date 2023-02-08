@@ -21,3 +21,18 @@ func GetNewRunId(profileName string) (string, error) {
 
 	return runIdHuman, nil
 }
+
+func AddPemKey(runId string, key []byte) error {
+	// runId in code is always eq to runIdHuman from the view
+	query := `UPDATE RunLogs SET PemKey = ?
+	WHERE Id = (SELECT RunId FROM v_runIds WHERE RunIdHuman = ? LIMIT 1);`
+	_, err := db.Exec(query, key, runId)
+	return err
+}
+
+func GetPemKey(runId string) ([]byte, error) {
+	query := "SELECT PemKey FROM v_runIds WHERE RunIdHuman = ?;"
+	var key []byte
+	err := db.QueryRow(query, runId).Scan(&key)
+	return key, err
+}

@@ -59,8 +59,6 @@ func StartAwsVm(req AwsSetupRequest) (tinycloud.Vm, error) {
 		return nil, err
 	}
 
-	// TODO add to inventory
-
 	client := ec2.NewFromConfig(cfg)
 
 	if err = CreateSecurityGroup(runId, client); err != nil {
@@ -75,6 +73,7 @@ func StartAwsVm(req AwsSetupRequest) (tinycloud.Vm, error) {
 	if sshKey, err = GenerateSSHKey(runId, client); err != nil {
 		return nil, err
 	}
+	data.AddPemKey(runId, sshKey)
 
 	var instanceId string
 	if instanceId, err = CretaeInstance(runId, req.InstanceType, req.Iam, client); err != nil {

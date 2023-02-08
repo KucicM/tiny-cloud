@@ -109,7 +109,8 @@ func createRunLogsTable() error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS RunLogs (
 		Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		ProfileId NOT NULL,
-		Created DATETIME DEFAULT CURRENT_TIMESTAMP
+		Created DATETIME DEFAULT CURRENT_TIMESTAMP,
+		PemKey BLOB NULL
 	)`)
 	return err
 }
@@ -121,6 +122,7 @@ func createRunIdView() error {
 		log.Id AS runId, 
 		p.Name || '-' || log.Id AS RunIdHuman, 
 		p.Name AS ProfileName,
+		log.PemKey AS PemKey,
 		log.Created Created
 	FROM Profiles AS p
 	JOIN RunLogs AS log ON p.Id = log.ProfileId
