@@ -79,30 +79,11 @@ func CretaeEc2(runId, instanceType, iam string, api Ec2Api) (string, error) {
 
 func waitInstanceStart(instanceId string, api Ec2Api) error {
 	fmt.Println("waiting instance start")
-	ops := &ec2.DescribeInstanceStatusInput{
-		IncludeAllInstances: aws.Bool(true),
-		InstanceIds:         []string{instanceId},
+	doneCondition := func(in *ec2.DescribeInstanceStatusOutput) bool {
+		state := in.InstanceStatuses[0].InstanceState
+		return state.Name == types.InstanceStateNameRunning
 	}
-
-	// TODO add timeout?
-	for {
-		out, err := api.DescribeInstanceStatus(context.TODO(), ops, opsFn)
-
-		if err != nil {
-			return fmt.Errorf("faild to get vm status %s", err)
-		}
-
-		if out == nil || len(out.InstanceStatuses) == 0 {
-			continue
-		}
-
-		state := out.InstanceStatuses[0].InstanceState
-		if state.Name == types.InstanceStateNameRunning {
-			break
-		}
-	}
-
-	return nil
+	return waitInstanceStatus([]string{instanceId}, doneCondition, api)
 }
 
 func getDNSName(instanceId string, api Ec2Api) (string, error) {
@@ -157,32 +138,17 @@ func DeleteEc2(runIds []string, api Ec2Api) error {
 
 func waitInstanceTermination(instanceIds []string, api Ec2Api) error {
 	fmt.Println("wating instance termination")
-	ops := &ec2.DescribeInstanceStatusInput{
-		IncludeAllInstances: aws.Bool(true),
-		InstanceIds:         instanceIds,
-	}
 
-	// todo timeout?
-	anyUp := true
-	for anyUp {
-		out, err := api.DescribeInstanceStatus(context.TODO(), ops, opsFn)
-
-		if err != nil {
-			return fmt.Errorf("faild to get vm status %s", err)
-		}
-
-		if out == nil {
-			continue
-		}
-
-		anyUp = false
-		for _, instance := range out.InstanceStatuses {
+	doneCondition := func(in *ec2.DescribeInstanceStatusOutput) bool {
+		for _, instance := range in.InstanceStatuses {
 			if instance.InstanceState.Name != types.InstanceStateNameTerminated {
-				anyUp = true
+				return false
 			}
 		}
+		return true
 	}
-	return nil
+
+	return waitInstanceStatus(instanceIds, doneCondition, api)
 }
 
 func hasRunIdTag(tags []types.Tag, runIds []string) bool {
@@ -196,4 +162,30 @@ func hasRunIdTag(tags []types.Tag, runIds []string) bool {
 		}
 	}
 	return false
+}
+
+func waitInstanceStatus(instanceIds []string,
+	doneCond func(*ec2.DescribeInstanceStatusOutput) bool, api Ec2Api) error {
+
+	ops := &ec2.DescribeInstanceStatusInput{
+		IncludeAllInstances: aws.Bool(true),
+		InstanceIds:         instanceIds,
+	}
+
+	for {
+		out, err := api.DescribeInstanceStatus(context.TODO(), ops, opsFn)
+
+		if err != nil {
+			return fmt.Errorf("faild to get vm status %s", err)
+		}
+
+		if out == nil || len(out.InstanceStatuses) == 0 {
+			continue
+		}
+
+		if doneCond(out) {
+			break
+		}
+	}
+	return nil
 }
