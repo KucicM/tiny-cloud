@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"log"
+
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
+	"github.com/kucicm/tiny-cloud/pkg/app"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +22,9 @@ func runCmd() *cobra.Command {
 			req.LocalFilesPath, _ = cmd.Flags().GetString("src-path")
 			req.VmType, _ = cmd.Flags().GetString("vm-type")
 			req.DataOutPath, _ = cmd.Flags().GetString("data-out-path")
+			if err := app.Run(req); err != nil {
+				log.Println(err)
+			}
 		},
 	}
 

@@ -3,38 +3,39 @@ package app
 import (
 	"fmt"
 
-	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 	"github.com/kucicm/tiny-cloud/pkg/cloud"
+	"github.com/kucicm/tiny-cloud/pkg/data"
 	"github.com/kucicm/tiny-cloud/pkg/state"
 )
 
-func Run(req *tinycloud.RunRequest) error {
+func Destroy() error {
 	profile, err := state.GetActiveProfile()
 	if err != nil {
 		return err
 	}
 
 	// steup vm
-	var vm tinycloud.Vm
 	switch profile.Settings.ResolveCloudName() {
 	case "aws":
-		req := cloud.AwsSetupRequest{
+		runIds, err := data.GetAllRunIds(profile.Name)
+		if err != nil {
+			return err
+		}
+
+		req := cloud.AwsDestroyRequest{
 			ProfileName:      profile.Name,
 			Region:           profile.Settings.AwsRegion,
 			AccessKeyId:      profile.Settings.AwsAccessKeyId,
 			SeacretAccessKey: profile.Settings.AwsSeacretAccessKey,
-			InstanceType:     req.VmType,
-			Iam:              "ami-06c39ed6b42908a36", // todo from db defaults
+			RunIds:           runIds,
 		}
-		vm, err = cloud.StartAwsVm(req)
+		err = cloud.DestroyAws(req)
 		if err != nil {
 			return err
 		}
 	default:
 		return fmt.Errorf("cloud unsupported") // unreachable
 	}
-
-	vm.Run(tinycloud.TaskDefinition{})
 
 	return nil
 }

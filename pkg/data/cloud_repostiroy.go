@@ -1,5 +1,7 @@
 package data
 
+import "database/sql"
+
 func GetNewRunId(profileName string) (string, error) {
 	var id int
 	query := "SELECT Id FROM Profiles WHERE Name = ?;"
@@ -35,4 +37,28 @@ func GetPemKey(runId string) ([]byte, error) {
 	var key []byte
 	err := db.QueryRow(query, runId).Scan(&key)
 	return key, err
+}
+
+func GetAllRunIds(profileName string) ([]string, error) { // TODO test
+	query := "SELECT RunIdHuman FROM v_runIds WHERE ProfileName = ?;"
+	res, err := db.Query(query, profileName)
+
+	runIds := make([]string, 0)
+	if err == sql.ErrNoRows {
+		return runIds, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for res.Next() {
+		var runId string
+		if err = res.Scan(&runId); err != nil {
+			return nil, err
+		}
+
+		runIds = append(runIds, runId)
+	}
+	return runIds, nil
 }

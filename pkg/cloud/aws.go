@@ -35,8 +35,9 @@ type AwsSetupRequest struct {
 	Iam              string
 }
 
-func StartAwsVm(req AwsSetupRequest) (tinycloud.Vm, error) {
+// CERATE AWS VM
 
+func StartAwsVm(req AwsSetupRequest) (tinycloud.Vm, error) {
 	// auth
 	creds := credentials.NewStaticCredentialsProvider(
 		req.AccessKeyId,
@@ -54,12 +55,12 @@ func StartAwsVm(req AwsSetupRequest) (tinycloud.Vm, error) {
 		return nil, err
 	}
 
+	client := ec2.NewFromConfig(cfg)
+
 	runId, err := data.GetNewRunId(req.ProfileName)
 	if err != nil {
 		return nil, err
 	}
-
-	client := ec2.NewFromConfig(cfg)
 
 	if err = CreateSecurityGroup(runId, client); err != nil {
 		return nil, err
@@ -101,6 +102,9 @@ type SecurityGroupApi interface {
 	CreateSecurityGroup(ctx context.Context,
 		params *ec2.CreateSecurityGroupInput,
 		optFns ...func(*ec2.Options)) (*ec2.CreateSecurityGroupOutput, error)
+	DeleteSecurityGroup(ctx context.Context,
+		params *ec2.DeleteSecurityGroupInput,
+		optFns ...func(*ec2.Options)) (*ec2.DeleteSecurityGroupOutput, error)
 }
 
 func CreateSecurityGroup(runId string, api SecurityGroupApi) error {
@@ -111,7 +115,7 @@ func CreateSecurityGroup(runId string, api SecurityGroupApi) error {
 			ResourceType: types.ResourceTypeSecurityGroup,
 			Tags: []types.Tag{{
 				Key:   aws.String("tiny-cloud"),
-				Value: aws.String("security-group"),
+				Value: aws.String(runId),
 			}},
 		}},
 	}
@@ -146,7 +150,7 @@ func AuthorizeSSH(runId string, api AuthorizeSecurityGroupApi) error {
 			ResourceType: types.ResourceTypeSecurityGroupRule,
 			Tags: []types.Tag{{
 				Key:   aws.String("tiny-cloud"),
-				Value: aws.String("security-group-rule"),
+				Value: aws.String(runId),
 			}},
 		}},
 	}
@@ -159,6 +163,9 @@ type SSHKeyApi interface {
 	CreateKeyPair(ctx context.Context,
 		params *ec2.CreateKeyPairInput,
 		optFns ...func(*ec2.Options)) (*ec2.CreateKeyPairOutput, error)
+	DeleteKeyPair(ctx context.Context,
+		params *ec2.DeleteKeyPairInput,
+		optFns ...func(*ec2.Options)) (*ec2.DeleteKeyPairOutput, error)
 }
 
 func GenerateSSHKey(runId string, api SSHKeyApi) ([]byte, error) {
@@ -168,7 +175,7 @@ func GenerateSSHKey(runId string, api SSHKeyApi) ([]byte, error) {
 			ResourceType: types.ResourceTypeKeyPair,
 			Tags: []types.Tag{{
 				Key:   aws.String("tiny-cloud"),
-				Value: aws.String("key-pairs"),
+				Value: aws.String(runId),
 			}},
 		}},
 	}
@@ -192,6 +199,10 @@ type InstanceApi interface {
 	DescribeInstances(ctx context.Context,
 		params *ec2.DescribeInstancesInput,
 		optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
+
+	TerminateInstances(ctx context.Context,
+		params *ec2.TerminateInstancesInput,
+		optFns ...func(*ec2.Options)) (*ec2.TerminateInstancesOutput, error)
 }
 
 func CretaeInstance(runId, instanceType, iam string, api InstanceApi) (string, error) {
@@ -207,10 +218,11 @@ func CretaeInstance(runId, instanceType, iam string, api InstanceApi) (string, e
 			ResourceType: types.ResourceTypeInstance,
 			Tags: []types.Tag{{
 				Key:   aws.String("tiny-cloud"),
-				Value: aws.String("ec2"),
+				Value: aws.String(runId),
 			}},
 		}},
 	}
+
 	out, err := api.RunInstances(context.TODO(), ops, opsFn)
 	if err != nil {
 		return "", fmt.Errorf("faild to create new vm with error: %s", err)
@@ -233,6 +245,7 @@ func CretaeInstance(runId, instanceType, iam string, api InstanceApi) (string, e
 }
 
 func waitInstanceStart(instanceId string, api InstanceApi) error {
+	fmt.Println("waiting instance start")
 	ops := &ec2.DescribeInstanceStatusInput{
 		IncludeAllInstances: aws.Bool(true),
 		InstanceIds:         []string{instanceId},
@@ -273,6 +286,152 @@ func getDNSName(instanceId string, api InstanceApi) (string, error) {
 
 	instance := out.Reservations[0].Instances[0]
 	return *instance.PublicDnsName, nil
+}
+
+// DELETE AWS VM
+type AwsDestroyRequest struct {
+	ProfileName      string
+	Region           string
+	AccessKeyId      string
+	SeacretAccessKey string
+	RunIds           []string
+}
+
+// deletes all resoures created by the user
+func DestroyAws(req AwsDestroyRequest) error {
+	// auth
+	creds := credentials.NewStaticCredentialsProvider(
+		req.AccessKeyId,
+		req.SeacretAccessKey,
+		"",
+	)
+
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion(req.Region),
+		config.WithCredentialsProvider(creds),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	client := ec2.NewFromConfig(cfg)
+
+	if err = deleteInstances(client, req.RunIds); err != nil {
+		return err
+	}
+
+	if err = deleteSSHKeys(client, req.RunIds); err != nil {
+		return err
+	}
+
+	if err = deleteSecurityGroups(client, req.RunIds); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteInstances(api InstanceApi, runIds []string) error {
+	findOps := &ec2.DescribeInstancesInput{
+		Filters: []types.Filter{
+			{Name: aws.String("tag-key"), Values: []string{"tiny-cloud"}},
+			{Name: aws.String("instance-state-name"), Values: []string{"pending", "running", "stopped"}},
+		},
+	}
+
+	des, err := api.DescribeInstances(context.TODO(), findOps, opsFn)
+	if err != nil {
+		return err
+	}
+
+	if des == nil || len(des.Reservations) == 0 {
+		return nil
+	}
+
+	instanceIds := make([]string, 0)
+	for _, reservation := range des.Reservations {
+		for _, instance := range reservation.Instances {
+			if hasRunIdTag(instance.Tags, runIds) {
+				instanceIds = append(instanceIds, *instance.InstanceId)
+			}
+		}
+	}
+
+	ops := &ec2.TerminateInstancesInput{InstanceIds: instanceIds}
+	if _, err = api.TerminateInstances(context.TODO(), ops, opsFn); err != nil {
+		return err
+	}
+
+	return waitInstanceTermination(api, instanceIds)
+}
+
+func waitInstanceTermination(api InstanceApi, instanceIds []string) error {
+	fmt.Println("wating instance termination")
+	ops := &ec2.DescribeInstanceStatusInput{
+		IncludeAllInstances: aws.Bool(true),
+		InstanceIds:         instanceIds,
+	}
+
+	// todo timeout?
+	anyUp := true
+	for anyUp {
+		out, err := api.DescribeInstanceStatus(context.TODO(), ops, opsFn)
+
+		if err != nil {
+			return fmt.Errorf("faild to get vm status %s", err)
+		}
+
+		if out == nil {
+			continue
+		}
+
+		anyUp = false
+		for _, instance := range out.InstanceStatuses {
+			if instance.InstanceState.Name != types.InstanceStateNameTerminated {
+				anyUp = true
+			}
+		}
+	}
+	return nil
+}
+
+func hasRunIdTag(tags []types.Tag, runIds []string) bool {
+	for _, tag := range tags {
+		if *tag.Key == "tiny-cloud" {
+			for _, runId := range runIds {
+				if runId == *tag.Value {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func deleteSSHKeys(api SSHKeyApi, runIds []string) error {
+	// runIds == keyNames
+	for _, runId := range runIds {
+		ops := &ec2.DeleteKeyPairInput{KeyName: aws.String(runId)}
+		_, err := api.DeleteKeyPair(context.TODO(), ops, opsFn)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteSecurityGroups(api SecurityGroupApi, runIds []string) error {
+	// runIds == securityGroupName
+	for _, runId := range runIds {
+		ops := &ec2.DeleteSecurityGroupInput{GroupName: aws.String(runId)}
+		_, err := api.DeleteSecurityGroup(context.TODO(), ops, opsFn)
+		if err != nil && !strings.Contains(err.Error(), "does not exist") {
+			return err
+		}
+	}
+	return nil
 }
 
 // func (a *AWS) Run(ops tinycloud.Ops) error {
@@ -325,94 +484,6 @@ func getDNSName(instanceId string, api InstanceApi) (string, error) {
 // 	stdin.Write([]byte("whoami\n"))
 // 	// stdin.Write([]byte("sudo shutdown now\n"))
 // 	session.Wait()
-// 	return nil
-// }
-
-// func (a *AWS) Destroy() error {
-
-// 	ec2Client := ec2.NewFromConfig(a.cfg)
-
-// 	// VM
-// 	vmOps := &ec2.DescribeInstancesInput{
-// 		Filters: []types.Filter{
-// 			{Name: aws.String("tag-key"), Values: []string{"tiny-cloud"}},
-// 			{Name: aws.String("instance-state-name"), Values: []string{"pending", "running", "stopped"}},
-// 		},
-// 	}
-
-// 	vmDesOut, err := ec2Client.DescribeInstances(context.TODO(), vmOps, func(o *ec2.Options) {})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	vmIds := make([]string, 0)
-// 	for _, res := range vmDesOut.Reservations {
-// 		for _, vm := range res.Instances {
-// 			vmIds = append(vmIds, *vm.InstanceId)
-// 		}
-// 	}
-
-// 	if len(vmIds) > 0 {
-// 		log.Printf("delete vmIds: %+v\n", vmIds)
-// 		vmDelOps := &ec2.TerminateInstancesInput{InstanceIds: vmIds}
-// 		_, err = ec2Client.TerminateInstances(context.TODO(), vmDelOps, func(o *ec2.Options) {})
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	// TODO wait for vms to be terminated?
-
-// 	// Keys
-// 	keyOps := &ec2.DescribeKeyPairsInput{Filters: []types.Filter{{
-// 		Name:   aws.String("tag-key"),
-// 		Values: []string{"tiny-cloud"},
-// 	}}}
-
-// 	keyDesOut, err := ec2Client.DescribeKeyPairs(context.TODO(), keyOps, func(o *ec2.Options) {})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	keyIds := make([]string, 0)
-// 	for _, key := range keyDesOut.KeyPairs {
-// 		keyIds = append(keyIds, *key.KeyPairId)
-// 	}
-
-// 	log.Printf("delete keyIds: %+v\n", keyIds)
-// 	for _, keyId := range keyIds {
-// 		keyDelOps := &ec2.DeleteKeyPairInput{KeyPairId: aws.String(keyId)}
-// 		_, err := ec2Client.DeleteKeyPair(context.TODO(), keyDelOps, func(o *ec2.Options) {})
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	// Security group
-// 	sgDesOps := &ec2.DescribeSecurityGroupsInput{Filters: []types.Filter{{
-// 		Name:   aws.String("tag-key"),
-// 		Values: []string{"tiny-cloud"},
-// 	}}}
-
-// 	sgDesOut, err := ec2Client.DescribeSecurityGroups(context.TODO(), sgDesOps, func(o *ec2.Options) {})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	sgIds := make([]string, 0)
-// 	for _, sg := range sgDesOut.SecurityGroups {
-// 		sgIds = append(sgIds, *sg.GroupId)
-// 	}
-
-// 	log.Printf("delete security-group-ids: %+v\n", sgIds)
-// 	for _, sgId := range sgIds {
-// 		sgDelOps := &ec2.DeleteSecurityGroupInput{GroupId: aws.String(sgId)}
-// 		_, err := ec2Client.DeleteSecurityGroup(context.TODO(), sgDelOps, func(o *ec2.Options) {})
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	// S3
 // 	return nil
 // }
 
