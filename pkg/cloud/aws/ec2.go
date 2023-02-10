@@ -38,7 +38,7 @@ type Ec2Api interface {
 		optFns ...func(*ec2.Options)) (*ec2.TerminateInstancesOutput, error)
 }
 
-func CretaeEc2(runId, instanceType, iam string, api Ec2Api) (string, error) {
+func CretaeEc2(runId, instanceType, iam string, tag types.Tag, api Ec2Api) (string, error) {
 	ops := &ec2.RunInstancesInput{
 		MinCount:                          aws.Int32(1),
 		MaxCount:                          aws.Int32(1),
@@ -49,10 +49,7 @@ func CretaeEc2(runId, instanceType, iam string, api Ec2Api) (string, error) {
 		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeInstance,
-			Tags: []types.Tag{{
-				Key:   aws.String("tiny-cloud"),
-				Value: aws.String(runId),
-			}},
+			Tags:         []types.Tag{tag},
 		}},
 	}
 

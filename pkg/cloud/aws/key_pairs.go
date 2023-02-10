@@ -17,15 +17,12 @@ type KeyPairApi interface {
 		optFns ...func(*ec2.Options)) (*ec2.DeleteKeyPairOutput, error)
 }
 
-func CreateKeyPair(keyName string, api KeyPairApi) ([]byte, error) {
+func CreateKeyPair(keyName string, tag types.Tag, api KeyPairApi) ([]byte, error) {
 	ops := &ec2.CreateKeyPairInput{
 		KeyName: aws.String(keyName),
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeKeyPair,
-			Tags: []types.Tag{{
-				Key:   aws.String("tiny-cloud"),
-				Value: aws.String(keyName),
-			}},
+			Tags:         []types.Tag{tag},
 		}},
 	}
 	out, err := api.CreateKeyPair(context.TODO(), ops, opsFn)

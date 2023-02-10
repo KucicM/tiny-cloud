@@ -20,16 +20,13 @@ type SecurityGroupApi interface {
 		optFns ...func(*ec2.Options)) (*ec2.DeleteSecurityGroupOutput, error)
 }
 
-func CreateSecurityGroup(groupName string, api SecurityGroupApi) error {
+func CreateSecurityGroup(groupName string, tag types.Tag, api SecurityGroupApi) error {
 	ops := &ec2.CreateSecurityGroupInput{
 		Description: aws.String("tiny-cloud"),
 		GroupName:   aws.String(groupName),
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeSecurityGroup,
-			Tags: []types.Tag{{
-				Key:   aws.String("tiny-cloud"),
-				Value: aws.String(groupName),
-			}},
+			Tags:         []types.Tag{tag},
 		}},
 	}
 
@@ -54,7 +51,7 @@ type AuthorizeSecurityGroupApi interface {
 		optFns ...func(*ec2.Options)) (*ec2.AuthorizeSecurityGroupIngressOutput, error)
 }
 
-func AuthorizeSSH(groupName string, api AuthorizeSecurityGroupApi) error {
+func AuthorizeSSH(groupName string, tag types.Tag, api AuthorizeSecurityGroupApi) error {
 	ip, err := getIp()
 	if err != nil {
 		return err
@@ -72,10 +69,7 @@ func AuthorizeSSH(groupName string, api AuthorizeSecurityGroupApi) error {
 		}},
 		TagSpecifications: []types.TagSpecification{{
 			ResourceType: types.ResourceTypeSecurityGroupRule,
-			Tags: []types.Tag{{
-				Key:   aws.String("tiny-cloud"),
-				Value: aws.String(groupName),
-			}},
+			Tags: []types.Tag{tag},
 		}},
 	}
 

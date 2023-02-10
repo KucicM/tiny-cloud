@@ -3,9 +3,11 @@ package aws
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 	"github.com/kucicm/tiny-cloud/pkg/data"
 )
@@ -33,22 +35,24 @@ func StartVm(req AwsSetupRequest) (tinycloud.Vm, error) {
 		return nil, err
 	}
 
-	if err = CreateSecurityGroup(runId, client); err != nil {
+	tag := types.Tag{Key: aws.String("tiny-cloud"), Value: aws.String(runId)}
+
+	if err = CreateSecurityGroup(runId, tag, client); err != nil {
 		return nil, err
 	}
 
-	if err = AuthorizeSSH(runId, client); err != nil {
+	if err = AuthorizeSSH(runId, tag, client); err != nil {
 		return nil, err
 	}
 
 	var sshKey []byte
-	if sshKey, err = CreateKeyPair(runId, client); err != nil {
+	if sshKey, err = CreateKeyPair(runId, tag, client); err != nil {
 		return nil, err
 	}
 	data.AddPemKey(runId, sshKey)
 
 	var instanceId string
-	if instanceId, err = CretaeEc2(runId, req.InstanceType, req.Iam, client); err != nil {
+	if instanceId, err = CretaeEc2(runId, req.InstanceType, req.Iam, tag, client); err != nil {
 		return nil, err
 	}
 
