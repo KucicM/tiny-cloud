@@ -39,23 +39,10 @@ type AwsSetupRequest struct {
 
 func StartAwsVm(req AwsSetupRequest) (tinycloud.Vm, error) {
 	// auth
-	creds := credentials.NewStaticCredentialsProvider(
-		req.AccessKeyId,
-		req.SeacretAccessKey,
-		"",
-	)
-
-	cfg, err := config.LoadDefaultConfig(
-		context.TODO(),
-		config.WithRegion(req.Region),
-		config.WithCredentialsProvider(creds),
-	)
-
+	client, err := getClient(req.Region, req.AccessKeyId, req.SeacretAccessKey)
 	if err != nil {
 		return nil, err
 	}
-
-	client := ec2.NewFromConfig(cfg)
 
 	runId, err := data.GetNewRunId(req.ProfileName)
 	if err != nil {
@@ -300,23 +287,10 @@ type AwsDestroyRequest struct {
 // deletes all resoures created by the user
 func DestroyAws(req AwsDestroyRequest) error {
 	// auth
-	creds := credentials.NewStaticCredentialsProvider(
-		req.AccessKeyId,
-		req.SeacretAccessKey,
-		"",
-	)
-
-	cfg, err := config.LoadDefaultConfig(
-		context.TODO(),
-		config.WithRegion(req.Region),
-		config.WithCredentialsProvider(creds),
-	)
-
+	client, err := getClient(req.Region, req.AccessKeyId, req.SeacretAccessKey)
 	if err != nil {
 		return err
 	}
-
-	client := ec2.NewFromConfig(cfg)
 
 	if err = deleteInstances(client, req.RunIds); err != nil {
 		return err
@@ -486,6 +460,27 @@ func deleteSecurityGroups(api SecurityGroupApi, runIds []string) error {
 // 	session.Wait()
 // 	return nil
 // }
+
+func getClient(region, accessKeyId, seacretAccessKey string) (*ec2.Client, error) {
+	creds := credentials.NewStaticCredentialsProvider(
+		accessKeyId,
+		seacretAccessKey,
+		"",
+	)
+
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion(region),
+		config.WithCredentialsProvider(creds),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	client := ec2.NewFromConfig(cfg)
+	return client, err
+}
 
 func opsFn(*ec2.Options) {
 	// empty
