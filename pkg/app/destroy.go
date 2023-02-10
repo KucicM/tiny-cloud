@@ -22,11 +22,12 @@ func Destroy() error {
 			return err
 		}
 
+		settings := profile.Settings.Aws
 		req := aws.AwsDestroyRequest{
 			ProfileName:      profile.Name,
-			Region:           profile.Settings.AwsRegion,
-			AccessKeyId:      profile.Settings.AwsAccessKeyId,
-			SeacretAccessKey: profile.Settings.AwsSeacretAccessKey,
+			Region:           settings.AwsRegion,
+			AccessKeyId:      settings.AwsAccessKeyId,
+			SeacretAccessKey: settings.AwsSeacretAccessKey,
 			RunIds:           runIds,
 		}
 		err = aws.DestroyAws(req)

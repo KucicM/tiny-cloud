@@ -108,9 +108,11 @@ func TestListAwsCloud(t *testing.T) {
 		Name:        "test-name",
 		Description: "test-des",
 		Settings: &tinycloud.CloudSettings{
-			AwsRegion:           "reg-1",
-			AwsAccessKeyId:      "xxxx-xxx-xxx",
-			AwsSeacretAccessKey: "yyy-yyy-yy",
+			Aws: &tinycloud.AwsSettings{
+				AwsRegion:           "reg-1",
+				AwsAccessKeyId:      "xxxx-xxx-xxx",
+				AwsSeacretAccessKey: "yyy-yyy-yy",
+			},
 		},
 	})
 
@@ -140,9 +142,11 @@ func TestListMultipleProfiles(t *testing.T) {
 		Name:        "test-name",
 		Description: "test-des",
 		Settings: &tinycloud.CloudSettings{
-			AwsRegion:           "reg-1",
-			AwsAccessKeyId:      "xxxx-xxx-xxx",
-			AwsSeacretAccessKey: "yyy-yyy-yy",
+			Aws: &tinycloud.AwsSettings{
+				AwsRegion:           "reg-1",
+				AwsAccessKeyId:      "xxxx-xxx-xxx",
+				AwsSeacretAccessKey: "yyy-yyy-yy",
+			},
 		},
 	})
 
@@ -154,9 +158,11 @@ func TestListMultipleProfiles(t *testing.T) {
 		Name:        "test-name-2",
 		Description: "test-des-2",
 		Settings: &tinycloud.CloudSettings{
-			AwsRegion:           "reg0",
-			AwsAccessKeyId:      "aaaa-aaaa-aaa",
-			AwsSeacretAccessKey: "oooo-oooo-oooo",
+			Aws: &tinycloud.AwsSettings{
+				AwsRegion:           "reg0",
+				AwsAccessKeyId:      "aaaa-aaaa-aaa",
+				AwsSeacretAccessKey: "oooo-oooo-oooo",
+			},
 		},
 	})
 

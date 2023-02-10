@@ -76,18 +76,20 @@ func CreateNewProfile(in io.Reader, out io.Writer) error {
 
 // resolves which clouds should be created
 func CreateNewCloudSettings(cloud string, ui *input.UI) (*tinycloud.CloudSettings, error) {
+	settings := &tinycloud.CloudSettings{}
+	var err error
 	switch cloud {
 	case "aws":
-		return NewAwsCloudSettings(ui)
+		settings.Aws, err = NewAwsCloudSettings(ui)
 	case "gcp":
 	default:
 		return nil, fmt.Errorf("cloud %s not supported", cloud)
 	}
-	return nil, nil
+	return settings, err
 }
 
 // aws implementation of settings
-func NewAwsCloudSettings(ui *input.UI) (*tinycloud.CloudSettings, error) {
+func NewAwsCloudSettings(ui *input.UI) (*tinycloud.AwsSettings, error) {
 	region, err := ui.Ask("Region", &input.Options{
 		Default:   "eu-west-1",
 		Required:  true,
@@ -120,7 +122,7 @@ func NewAwsCloudSettings(ui *input.UI) (*tinycloud.CloudSettings, error) {
 
 	// maybe add default vm type?
 
-	return &tinycloud.CloudSettings{
+	return &tinycloud.AwsSettings{
 		AwsRegion:           region,
 		AwsAccessKeyId:      accessKeyId,
 		AwsSeacretAccessKey: seacretKey,

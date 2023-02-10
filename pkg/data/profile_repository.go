@@ -44,14 +44,15 @@ func insertNewProfile(tx *sql.Tx, profile *tinycloud.Profile) error {
 	cloud := settigns.ResolveCloudName()
 	switch cloud {
 	case "aws":
+		aws := settigns.Aws
 		query = `INSERT INTO AwsSettings (ProfileId, Region, AccessKey, SecretAccessKey)
 			VALUES (?, ?, ?, ?);`
 		_, err = tx.Exec(
 			query,
 			profileId,
-			settigns.AwsRegion,
-			settigns.AwsAccessKeyId,
-			settigns.AwsSeacretAccessKey,
+			aws.AwsRegion,
+			aws.AwsAccessKeyId,
+			aws.AwsSeacretAccessKey,
 		)
 		return err
 	default:
@@ -75,16 +76,19 @@ func GetProfiles() (tinycloud.Profiles, error) {
 	profiles := make([]*tinycloud.Profile, 0)
 	for rows.Next() {
 		settings := &tinycloud.CloudSettings{}
+		aws := &tinycloud.AwsSettings{}
 		profile := &tinycloud.Profile{Settings: settings}
-		if err = rows.Scan(
+		err = rows.Scan(
 			&profile.Name, &profile.Description, &profile.Active,
-			&settings.AwsRegion, &settings.AwsAccessKeyId, &settings.AwsSeacretAccessKey,
-		); err == nil {
-			profiles = append(profiles, profile)
-		} else {
+			&aws.AwsRegion, &aws.AwsAccessKeyId, &aws.AwsSeacretAccessKey,
+		)
+		if aws.Valid() == nil {
+			settings.Aws = aws
+		}
+		if err != nil {
 			return nil, err
 		}
-
+		profiles = append(profiles, profile)
 	}
 
 	return profiles, nil
@@ -118,11 +122,17 @@ func GetActiveProfile() (*tinycloud.Profile, error) {
 	WHERE Active = 1`
 
 	settings := &tinycloud.CloudSettings{}
+	aws := &tinycloud.AwsSettings{}
 	profile := &tinycloud.Profile{Settings: settings}
 	err := db.QueryRow(query).Scan(
 		&profile.Name, &profile.Description, &profile.Active,
-		&settings.AwsRegion, &settings.AwsAccessKeyId, &settings.AwsSeacretAccessKey,
+		&aws.AwsRegion, &aws.AwsAccessKeyId, &aws.AwsSeacretAccessKey,
 	)
+
+	if aws.Valid() == nil {
+		settings.Aws = aws
+	}
+	// else if gcp etc
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("there are no profiles, create new one")

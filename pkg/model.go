@@ -48,35 +48,41 @@ func (p *Profile) Valid() error {
 }
 
 type CloudSettings struct {
-	// aws
+	Aws *AwsSettings
+	// gcp
+}
+
+type AwsSettings struct {
 	AwsRegion           string
 	AwsAccessKeyId      string
 	AwsSeacretAccessKey string
+}
 
-	// gcp
+func (s *AwsSettings) Valid() error {
+	if IsStrEmpty(s.AwsRegion) {
+		return fmt.Errorf("undefined aws region")
+	}
+	if IsStrEmpty(s.AwsAccessKeyId) {
+		return fmt.Errorf("undefined aws access key")
+	}
+	if IsStrEmpty(s.AwsSeacretAccessKey) {
+		return fmt.Errorf("undefined aws seacret access key")
+	}
+	return nil
 }
 
 func (s *CloudSettings) Valid() error {
 	name := s.ResolveCloudName()
 	switch name {
 	case "aws":
-		if IsStrEmpty(s.AwsRegion) {
-			return fmt.Errorf("undefined aws region")
-		}
-		if IsStrEmpty(s.AwsAccessKeyId) {
-			return fmt.Errorf("undefined aws access key")
-		}
-		if IsStrEmpty(s.AwsSeacretAccessKey) {
-			return fmt.Errorf("undefined aws seacret access key")
-		}
-		return nil
+		return s.Aws.Valid()
 	default:
 		return fmt.Errorf("unknown cloud '%s'", name)
 	}
 }
 
 func (s *CloudSettings) ResolveCloudName() string {
-	if s.AwsRegion != "" || s.AwsAccessKeyId != "" || s.AwsSeacretAccessKey != "" {
+	if s.Aws != nil {
 		return "aws"
 	}
 	return ""

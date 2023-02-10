@@ -72,9 +72,11 @@ func createProfile() (string, error) {
 	profile := &tinycloud.Profile{
 		Name: "test-name-1",
 		Settings: &tinycloud.CloudSettings{
-			AwsRegion:           "region-1",
-			AwsAccessKeyId:      "access-key-1",
-			AwsSeacretAccessKey: "seacret-acc-key-1",
+			Aws: &tinycloud.AwsSettings{
+				AwsRegion:           "region-1",
+				AwsAccessKeyId:      "access-key-1",
+				AwsSeacretAccessKey: "seacret-acc-key-1",
+			},
 		},
 	}
 

@@ -18,11 +18,12 @@ func Run(req *tinycloud.RunRequest) error {
 	var vm tinycloud.Vm
 	switch profile.Settings.ResolveCloudName() {
 	case "aws":
+		settings := profile.Settings.Aws
 		req := aws.AwsSetupRequest{
 			ProfileName:      profile.Name,
-			Region:           profile.Settings.AwsRegion,
-			AccessKeyId:      profile.Settings.AwsAccessKeyId,
-			SeacretAccessKey: profile.Settings.AwsSeacretAccessKey,
+			Region:           settings.AwsRegion,
+			AccessKeyId:      settings.AwsAccessKeyId,
+			SeacretAccessKey: settings.AwsSeacretAccessKey,
 			InstanceType:     req.VmType,
 			Iam:              "ami-06c39ed6b42908a36", // todo from db defaults
 		}

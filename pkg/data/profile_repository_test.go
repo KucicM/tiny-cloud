@@ -36,9 +36,11 @@ func TestCreateAwsProfile(t *testing.T) {
 	profile := &tinycloud.Profile{
 		Name: "test-name-1",
 		Settings: &tinycloud.CloudSettings{
-			AwsRegion:           "region-1",
-			AwsAccessKeyId:      "access-key-1",
-			AwsSeacretAccessKey: "seacret-acc-key-1",
+			Aws: &tinycloud.AwsSettings{
+				AwsRegion:           "region-1",
+				AwsAccessKeyId:      "access-key-1",
+				AwsSeacretAccessKey: "seacret-acc-key-1",
+			},
 		},
 	}
 
@@ -71,9 +73,11 @@ func TestNonUniqueProfileName(t *testing.T) {
 	profile := &tinycloud.Profile{
 		Name: "test-name-1",
 		Settings: &tinycloud.CloudSettings{
-			AwsRegion:           "region-1",
-			AwsAccessKeyId:      "access-key-1",
-			AwsSeacretAccessKey: "seacret-acc-key-1",
+			Aws: &tinycloud.AwsSettings{
+				AwsRegion:           "region-1",
+				AwsAccessKeyId:      "access-key-1",
+				AwsSeacretAccessKey: "seacret-acc-key-1",
+			},
 		},
 	}
 
@@ -117,9 +121,11 @@ func TestGetMultipleProfiles(t *testing.T) {
 		profile := &tinycloud.Profile{
 			Name: fmt.Sprintf("test-name-%d", i),
 			Settings: &tinycloud.CloudSettings{
-				AwsRegion:           "region-1",
-				AwsAccessKeyId:      "access-key-1",
-				AwsSeacretAccessKey: "seacret-acc-key-1",
+				Aws: &tinycloud.AwsSettings{
+					AwsRegion:           "region-1",
+					AwsAccessKeyId:      "access-key-1",
+					AwsSeacretAccessKey: "seacret-acc-key-1",
+				},
 			},
 		}
 		profiles = append(profiles, profile)
@@ -155,9 +161,11 @@ func TestGetDefaultActiveProfile(t *testing.T) {
 		profile = &tinycloud.Profile{
 			Name: fmt.Sprintf("test-name-%d", i),
 			Settings: &tinycloud.CloudSettings{
-				AwsRegion:           "region-1",
-				AwsAccessKeyId:      "access-key-1",
-				AwsSeacretAccessKey: "seacret-acc-key-1",
+				Aws: &tinycloud.AwsSettings{
+					AwsRegion:           "region-1",
+					AwsAccessKeyId:      "access-key-1",
+					AwsSeacretAccessKey: "seacret-acc-key-1",
+				},
 			},
 		}
 
@@ -188,9 +196,11 @@ func TestSetActiveAndGetActive(t *testing.T) {
 		profile := &tinycloud.Profile{
 			Name: fmt.Sprintf("test-name-%d", i),
 			Settings: &tinycloud.CloudSettings{
-				AwsRegion:           "region-1",
-				AwsAccessKeyId:      "access-key-1",
-				AwsSeacretAccessKey: "seacret-acc-key-1",
+				Aws: &tinycloud.AwsSettings{
+					AwsRegion:           "region-1",
+					AwsAccessKeyId:      "access-key-1",
+					AwsSeacretAccessKey: "seacret-acc-key-1",
+				},
 			},
 		}
 
@@ -236,9 +246,11 @@ func TestDeleteExistingProfile(t *testing.T) {
 	prof := &tinycloud.Profile{
 		Name: "test-name-8",
 		Settings: &tinycloud.CloudSettings{
-			AwsRegion:           "region-1",
-			AwsAccessKeyId:      "access-key-1",
-			AwsSeacretAccessKey: "seacret-acc-key-1",
+			Aws: &tinycloud.AwsSettings{
+				AwsRegion:           "region-1",
+				AwsAccessKeyId:      "access-key-1",
+				AwsSeacretAccessKey: "seacret-acc-key-1",
+			},
 		},
 	}
 
