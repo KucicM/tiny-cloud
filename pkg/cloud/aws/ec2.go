@@ -42,7 +42,7 @@ func CretaeEc2(runId, instanceType, iam string, api Ec2Api) (string, error) {
 	ops := &ec2.RunInstancesInput{
 		MinCount:                          aws.Int32(1),
 		MaxCount:                          aws.Int32(1),
-		ImageId:                           aws.String(iam), // TODO
+		ImageId:                           aws.String(iam),
 		InstanceType:                      types.InstanceType(instanceType),
 		KeyName:                           aws.String(runId),
 		SecurityGroups:                    []string{runId},
@@ -105,7 +105,7 @@ func getDNSName(instanceId string, api Ec2Api) (string, error) {
 func DeleteEc2(runIds []string, api Ec2Api) error {
 	findOps := &ec2.DescribeInstancesInput{
 		Filters: []types.Filter{
-			{Name: aws.String("tag-key"), Values: []string{"tiny-cloud"}},
+			{Name: aws.String("tag:tiny-cloud"), Values: runIds},
 			{Name: aws.String("instance-state-name"), Values: []string{"pending", "running", "stopped"}},
 		},
 	}
@@ -122,9 +122,7 @@ func DeleteEc2(runIds []string, api Ec2Api) error {
 	instanceIds := make([]string, 0)
 	for _, reservation := range des.Reservations {
 		for _, instance := range reservation.Instances {
-			if hasRunIdTag(instance.Tags, runIds) {
-				instanceIds = append(instanceIds, *instance.InstanceId)
-			}
+			instanceIds = append(instanceIds, *instance.InstanceId)
 		}
 	}
 
@@ -149,19 +147,6 @@ func waitInstanceTermination(instanceIds []string, api Ec2Api) error {
 	}
 
 	return waitInstanceStatus(instanceIds, doneCondition, api)
-}
-
-func hasRunIdTag(tags []types.Tag, runIds []string) bool {
-	for _, tag := range tags {
-		if *tag.Key == "tiny-cloud" {
-			for _, runId := range runIds {
-				if runId == *tag.Value {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }
 
 func waitInstanceStatus(instanceIds []string,
