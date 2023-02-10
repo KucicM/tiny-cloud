@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/kucicm/tiny-cloud/pkg/cloud"
+	"github.com/kucicm/tiny-cloud/pkg/cloud/aws"
 	"github.com/kucicm/tiny-cloud/pkg/data"
 	"github.com/kucicm/tiny-cloud/pkg/state"
 )
@@ -22,14 +22,14 @@ func Destroy() error {
 			return err
 		}
 
-		req := cloud.AwsDestroyRequest{
+		req := aws.AwsDestroyRequest{
 			ProfileName:      profile.Name,
 			Region:           profile.Settings.AwsRegion,
 			AccessKeyId:      profile.Settings.AwsAccessKeyId,
 			SeacretAccessKey: profile.Settings.AwsSeacretAccessKey,
 			RunIds:           runIds,
 		}
-		err = cloud.DestroyAws(req)
+		err = aws.DestroyAws(req)
 		if err != nil {
 			return err
 		}
