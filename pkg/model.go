@@ -110,6 +110,8 @@ type TaskDefinition struct {
 	SSHKey         []byte
 }
 
-type Vm interface {
-	Run(TaskDefinition)
+type Vm struct {
+	Id      string
+	SSHKey  []byte
+	DNSName string
 }

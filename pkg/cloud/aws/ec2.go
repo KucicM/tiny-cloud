@@ -7,18 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 )
-
-type Ec2 struct {
-	Id      string
-	SSHKey  []byte
-	DNSName string
-}
-
-func (e *Ec2) Run(task tinycloud.TaskDefinition) {
-
-}
 
 type Ec2Api interface {
 	RunInstances(ctx context.Context,

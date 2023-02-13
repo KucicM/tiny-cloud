@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
+	"github.com/kucicm/tiny-cloud/pkg/cloud"
 	"github.com/kucicm/tiny-cloud/pkg/cloud/aws"
 	"github.com/kucicm/tiny-cloud/pkg/state"
 )
@@ -15,7 +16,7 @@ func Run(req *tinycloud.RunRequest) error {
 	}
 
 	// steup vm
-	var vm tinycloud.Vm
+	var vm *tinycloud.Vm
 	switch profile.Settings.ResolveCloudName() {
 	case "aws":
 		settings := profile.Settings.Aws
@@ -35,7 +36,8 @@ func Run(req *tinycloud.RunRequest) error {
 		return fmt.Errorf("cloud unsupported") // unreachable
 	}
 
-	vm.Run(tinycloud.TaskDefinition{})
-
-	return nil
+	return cloud.Run(tinycloud.TaskDefinition{
+		SSHKey:  vm.SSHKey,
+		DNSName: vm.DNSName,
+	})
 }

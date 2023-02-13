@@ -37,7 +37,7 @@ func runCmd() *cobra.Command {
 
 	cmd.Flags().String(
 		"vm-type",
-		"",
+		"t2.micro",
 		"which type of vm should be used",
 	)
 	cmd.MarkFlagRequired("vm-type")

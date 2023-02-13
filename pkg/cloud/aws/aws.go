@@ -23,7 +23,7 @@ type AwsSetupRequest struct {
 	Iam              string
 }
 
-func StartVm(req AwsSetupRequest) (tinycloud.Vm, error) {
+func StartVm(req AwsSetupRequest) (*tinycloud.Vm, error) {
 	// auth
 	client, err := getClient(req.Region, req.AccessKeyId, req.SeacretAccessKey)
 	if err != nil {
@@ -66,7 +66,7 @@ func StartVm(req AwsSetupRequest) (tinycloud.Vm, error) {
 		return nil, err
 	}
 
-	return &Ec2{
+	return &tinycloud.Vm{
 		Id:      runId,
 		SSHKey:  sshKey,
 		DNSName: dnsName,
@@ -104,59 +104,6 @@ func DestroyAws(req AwsDestroyRequest) error {
 
 	return nil
 }
-
-// func (a *AWS) Run(ops tinycloud.Ops) error {
-
-// 	// connect to vm and execute command
-
-// 	pemBytes := []byte(*keyOut.KeyMaterial)
-// 	signer, err := ssh.ParsePrivateKey(pemBytes)
-// 	if err != nil {
-// 		log.Fatalf("parse key failed:%v", err)
-// 	}
-// 	config := &ssh.ClientConfig{
-// 		User:            "ec2-user",
-// 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
-// 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-// 	}
-
-// 	url := fmt.Sprintf("%s:22", dnsName)
-// 	var conn *ssh.Client
-// 	for {
-// 		conn, err = ssh.Dial("tcp", url, config)
-// 		if err == nil {
-// 			break
-// 		}
-// 		time.Sleep(time.Second)
-// 	}
-// 	defer conn.Close()
-
-// 	session, err := conn.NewSession()
-// 	if err != nil {
-// 		log.Fatalf("session failed:%v", err)
-// 	}
-// 	defer session.Close()
-
-// 	stdin, err := session.StdinPipe()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer stdin.Close()
-
-// 	session.Stdout = os.Stdout
-// 	session.Stderr = os.Stderr
-
-// 	if err := session.Shell(); err != nil {
-// 		return err
-// 	}
-
-// 	// push to S3?
-
-// 	stdin.Write([]byte("whoami\n"))
-// 	// stdin.Write([]byte("sudo shutdown now\n"))
-// 	session.Wait()
-// 	return nil
-// }
 
 func getClient(region, accessKeyId, seacretAccessKey string) (*ec2.Client, error) {
 	creds := credentials.NewStaticCredentialsProvider(
