@@ -14,14 +14,13 @@ func Destroy() error {
 		return err
 	}
 
-	// steup vm
+	runIds, err := data.GetAllRunIds(profile.Name)
+	if err != nil {
+		return err
+	}
+
 	switch profile.Settings.ResolveCloudName() {
 	case "aws":
-		runIds, err := data.GetAllRunIds(profile.Name)
-		if err != nil {
-			return err
-		}
-
 		settings := profile.Settings.Aws
 		req := aws.AwsDestroyRequest{
 			ProfileName:      profile.Name,
@@ -36,6 +35,10 @@ func Destroy() error {
 		}
 	default:
 		return fmt.Errorf("cloud unsupported") // unreachable
+	}
+
+	if err = data.DeleteRuns(runIds); err != nil {
+		return err
 	}
 
 	return nil

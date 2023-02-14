@@ -62,3 +62,13 @@ func GetAllRunIds(profileName string) ([]string, error) { // TODO test
 	}
 	return runIds, nil
 }
+
+func DeleteRuns(runIds []string) error {
+	query := "DELETE FROM RunLogs WHERE Id IN (SELECT runId FROM v_runIds WHERE RunIdHuman = ?)"
+	for _, runId := range runIds {
+		if _, err := db.Exec(query, runId); err != nil {
+			return err
+		}
+	}
+	return nil
+}
