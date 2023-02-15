@@ -19,7 +19,7 @@ func runCmd() *cobra.Command {
 		Long:  "Run a task in a cloud",
 		Run: func(cmd *cobra.Command, args []string) {
 			req := &tinycloud.RunRequest{}
-			req.DockerImage, _ = cmd.Flags().GetString("image")
+			req.DockerImageId, _ = cmd.Flags().GetString("imageId")
 			req.VmType, _ = cmd.Flags().GetString("vm-type")
 			req.DataOutPath, _ = cmd.Flags().GetString("data-out-path")
 			if err := app.Run(req); err != nil {
@@ -29,11 +29,11 @@ func runCmd() *cobra.Command {
 	}
 
 	cmd.Flags().String(
-		"image",
+		"imageId",
 		"",
 		"docker image to run on vm",
 	)
-	cmd.MarkFlagRequired("src-path")
+	cmd.MarkFlagRequired("imageId")
 
 	cmd.Flags().String(
 		"vm-type",

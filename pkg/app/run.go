@@ -15,6 +15,15 @@ func Run(req *tinycloud.RunRequest) error {
 		return err
 	}
 
+	found, err := cloud.DoseDockerImageExists(req.DockerImageId)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return fmt.Errorf("cannot find image with Id='%s'", req.DockerImageId)
+	}
+
 	// steup vm
 	var vm *tinycloud.Vm
 	switch profile.Settings.ResolveCloudName() {
@@ -37,7 +46,8 @@ func Run(req *tinycloud.RunRequest) error {
 	}
 
 	return cloud.Run(tinycloud.TaskDefinition{
-		SSHKey:  vm.SSHKey,
-		DNSName: vm.DNSName,
+		SSHKey:        vm.SSHKey,
+		DNSName:       vm.DNSName,
+		DockerImageId: req.DockerImageId,
 	})
 }

@@ -98,13 +98,13 @@ func IsStrEmpty(str string) bool {
 }
 
 type RunRequest struct {
-	DockerImage string
+	DockerImageId string
 	VmType      string
 	DataOutPath string
 }
 
 type TaskDefinition struct {
-	DockerImage string
+	DockerImageId string
 	DataOutPath string
 	DNSName     string
 	SSHKey      []byte

@@ -3,11 +3,15 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bramvdbogaerde/go-scp"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 	"golang.org/x/crypto/ssh"
 )
@@ -46,7 +50,19 @@ func Run(task tinycloud.TaskDefinition) error {
 	if err != nil {
 		return err
 	}
-	if err = client.CopyFromFile(context.Background(), *f, "test.txt", "0655"); err != nil {
+
+	img, err := GetDockerImage(task.DockerImageId)
+	if err != nil {
+		return err
+	}
+	defer img.Close()
+
+	if err = client.CopyFilePassThru(
+		context.Background(),
+		img,
+		"docker-image",
+		"0655",
+		func(r io.Reader, total int64) io.Reader { return r }); err != nil {
 		return err
 	}
 	client.Close()
@@ -72,8 +88,51 @@ func Run(task tinycloud.TaskDefinition) error {
 		return err
 	}
 
-	stdin.Write([]byte("ls\n"))
+	stdin.Write([]byte("docker images\n"))
 	session.Wait()
 
 	return nil
+}
+
+func GetDockerImage(imageId string) (io.ReadCloser, error) {
+	if err := os.Setenv(client.EnvOverrideAPIVersion, "1.41"); err != nil {
+		return nil, err
+	}
+
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := cli.ImageSave(context.Background(), []string{imageId})
+	if err != nil {
+		return nil, err
+	}
+
+	return reader, nil
+}
+
+func DoseDockerImageExists(imageId string) (bool, error) {
+	if err := os.Setenv(client.EnvOverrideAPIVersion, "1.41"); err != nil {
+		return false, err
+	}
+
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return false, err
+	}
+
+	// todo add filter for imageId
+	images, err := cli.ImageList(context.TODO(), types.ImageListOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	for _, img := range images {
+		id := strings.Split(img.ID, ":")[1]
+		if strings.HasPrefix(id, imageId) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
