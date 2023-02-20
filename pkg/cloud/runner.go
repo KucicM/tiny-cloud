@@ -16,6 +16,13 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// check if docker image exists (do not create any resources if it does not exist)
+// save docker image into a "file"
+// push docker "file" in vm
+// unpack docker image
+// start docker container
+// wait to finish?
+
 func Run(task tinycloud.TaskDefinition) error {
 	signer, err := ssh.ParsePrivateKey(task.SSHKey)
 	if err != nil {
@@ -57,15 +64,21 @@ func Run(task tinycloud.TaskDefinition) error {
 	}
 	defer img.Close()
 
-	if err = client.CopyFilePassThru(
+	imageName := fmt.Sprintf("tiny-cloud-docker-image-%s", task.DockerImageId)
+	err = client.CopyFilePassThru(
 		context.Background(),
 		img,
-		"docker-image",
+		imageName,
 		"0655",
-		func(r io.Reader, total int64) io.Reader { return r }); err != nil {
+		func(r io.Reader, total int64) io.Reader { return r })
+
+	if err != nil {
 		return err
 	}
 	client.Close()
+
+	script := fmt.Sprintf("docker load --input %s\n", imageName)
+	script += fmt.Sprintf("docker run %s\n", task.DockerImageId)
 
 	// run docker image on vm
 	log.Println("create session")
@@ -88,7 +101,7 @@ func Run(task tinycloud.TaskDefinition) error {
 		return err
 	}
 
-	stdin.Write([]byte("docker images\n"))
+	stdin.Write([]byte(script))
 	session.Wait()
 
 	return nil
