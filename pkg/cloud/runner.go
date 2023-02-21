@@ -37,12 +37,6 @@ func Run(task tinycloud.TaskDefinition) error {
 
 	url := fmt.Sprintf("%s:22", task.DNSName)
 
-	f, err := os.Open("test.txt")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
 	var conn *ssh.Client
 	for {
 		if conn, err = ssh.Dial("tcp", url, cfg); err == nil {
