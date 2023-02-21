@@ -99,15 +99,15 @@ func IsStrEmpty(str string) bool {
 
 type RunRequest struct {
 	DockerImageId string
-	VmType      string
-	DataOutPath string
+	VmType        string
+	DataOutPath   string
 }
 
 type TaskDefinition struct {
 	DockerImageId string
-	DataOutPath string
-	DNSName     string
-	SSHKey      []byte
+	DataOutPath   string
+	DNSName       string
+	SSHKey        []byte
 }
 
 type Vm struct {

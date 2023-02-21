@@ -52,7 +52,6 @@ func Run(task tinycloud.TaskDefinition) error {
 	}
 	defer conn.Close()
 
-	// copy docker image to vm
 	client, err := scp.NewClientBySSH(conn)
 	if err != nil {
 		return err
@@ -79,6 +78,7 @@ func Run(task tinycloud.TaskDefinition) error {
 
 	script := fmt.Sprintf("docker load --input %s\n", imageName)
 	script += fmt.Sprintf("docker run %s\n", task.DockerImageId)
+	script += "exit\n"
 
 	// run docker image on vm
 	log.Println("create session")
