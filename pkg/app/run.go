@@ -37,8 +37,14 @@ func Run(req *tinycloud.RunRequest) error {
 			InstanceType:     req.VmType,
 			Iam:              "ami-06c39ed6b42908a36", // todo from db defaults
 		}
+        /*
 		vm, err = aws.StartVm(req)
 		if err != nil {
+			return err
+		}
+        */
+
+        if err := aws.CreateS3(req); err != nil {
 			return err
 		}
 	default:

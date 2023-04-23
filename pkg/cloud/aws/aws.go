@@ -52,7 +52,7 @@ func StartVm(req AwsSetupRequest) (*tinycloud.Vm, error) {
 	data.AddPemKey(runId, sshKey)
 
 	var instanceId string
-	if instanceId, err = CretaeEc2(runId, req.InstanceType, req.Iam, tag, client); err != nil {
+	if instanceId, err = CreateEC2(runId, req.InstanceType, req.Iam, tag, client); err != nil {
 		return nil, err
 	}
 
