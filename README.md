@@ -1,7 +1,7 @@
-
 # tiny-cloud
 
-Run task on cloud VMs.
+Deploy docker image on remote machine like AWS EC2.
+
 
 NOTE: Work in progress!
 
@@ -23,12 +23,12 @@ Add permissions:
 tiny-cloud configure
 ```
 
-## Run
+## Useage
 
-Run a task:
+Run
 
 ``` bash
-tiny-cloud run <command>
+tiny-cloud run <image-name> <override options>
 ```
 
 ## Delete resources
