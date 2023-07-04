@@ -17,7 +17,7 @@ import (
 const bucketPrefix string = "tiny-cloud-"
 const maxSizeName int = 32
 
-func CreateS3(req AwsSetupRequest) error {
+func CreateS3(req AwsSetupRequest) (string, error) {
 	creds := credentials.NewStaticCredentialsProvider(
 		req.AccessKeyId,
 		req.SeacretAccessKey,
@@ -31,7 +31,7 @@ func CreateS3(req AwsSetupRequest) error {
 	)
 
     if err != nil {
-        return err
+        return "", err
     }
 
     client := s3.NewFromConfig(cfg)
@@ -39,25 +39,24 @@ func CreateS3(req AwsSetupRequest) error {
 
     res, err := client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
     if err != nil {
-        return err
+        return "", err
     }
 
     for _, bucket := range res.Buckets {
         if strings.HasPrefix(*bucket.Name, bucketPrefix) {
-            return nil
+            return *bucket.Name, nil
         }
     }
 
     bucketName := createRandomName()
-    out, err := client.CreateBucket(context.TODO(), &s3.CreateBucketInput{
+    _, err = client.CreateBucket(context.TODO(), &s3.CreateBucketInput{
         Bucket: aws.String(bucketName),
         CreateBucketConfiguration: &types.CreateBucketConfiguration{
 			LocationConstraint: types.BucketLocationConstraint(req.Region),
 		},
     })
 
-    fmt.Printf("%v\n", out)
-    return err
+    return bucketName, err
 }
 
 func createRandomName() string {

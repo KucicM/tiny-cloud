@@ -28,6 +28,8 @@ func Run(req *tinycloud.RunRequest) error {
 	var vm *tinycloud.Vm
 	switch profile.Settings.ResolveCloudName() {
 	case "aws":
+
+        // create VMw
 		settings := profile.Settings.Aws
 		req := aws.AwsSetupRequest{
 			ProfileName:      profile.Name,
@@ -44,7 +46,7 @@ func Run(req *tinycloud.RunRequest) error {
 		}
         */
 
-        if err := aws.CreateS3(req); err != nil {
+        if _, err := aws.CreateS3(req); err != nil {
 			return err
 		}
 	default:
@@ -57,3 +59,4 @@ func Run(req *tinycloud.RunRequest) error {
 		DockerImageId: req.DockerImageId,
 	})
 }
+
