@@ -37,6 +37,7 @@ func Run(task tinycloud.TaskDefinition) error {
 
 	url := fmt.Sprintf("%s:22", task.DNSName)
 
+    log.Printf("connecting to %s\n", url)
 	var conn *ssh.Client
 	for {
 		if conn, err = ssh.Dial("tcp", url, cfg); err == nil {
@@ -45,6 +46,7 @@ func Run(task tinycloud.TaskDefinition) error {
 		time.Sleep(time.Second)
 	}
 	defer conn.Close()
+    log.Printf("connected to %s\n", url)
 
 	client, err := scp.NewClientBySSH(conn)
 	if err != nil {
@@ -58,6 +60,7 @@ func Run(task tinycloud.TaskDefinition) error {
 	defer img.Close()
 
 	imageName := fmt.Sprintf("tiny-cloud-docker-image-%s", task.DockerImageId)
+    log.Printf("pushing docker image %s\n", imageName)
 	err = client.CopyFilePassThru(
 		context.Background(),
 		img,
@@ -69,10 +72,15 @@ func Run(task tinycloud.TaskDefinition) error {
 		return err
 	}
 	client.Close()
+    log.Printf("pushed docker image %s\n", imageName)
 
+    /*
 	script := fmt.Sprintf("docker load --input %s\n", imageName)
 	script += fmt.Sprintf("docker run %s\n", task.DockerImageId)
 	script += "exit\n"
+    */
+
+    script := "time"
 
 	// run docker image on vm
 	log.Println("create session")
@@ -95,8 +103,10 @@ func Run(task tinycloud.TaskDefinition) error {
 		return err
 	}
 
+	log.Println("running docker image")
 	stdin.Write([]byte(script))
 	session.Wait()
+	log.Println("docker image started")
 
 	return nil
 }
