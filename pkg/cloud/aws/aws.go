@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+    "github.com/aws/aws-sdk-go-v2/service/sts"
 	tinycloud "github.com/kucicm/tiny-cloud/pkg"
 	"github.com/kucicm/tiny-cloud/pkg/data"
 )
@@ -21,6 +22,8 @@ type AwsSetupRequest struct {
 	SeacretAccessKey string
 	InstanceType     string
 	Iam              string
+    BucketName       string
+    AccountId        string
 }
 
 func StartVm(req AwsSetupRequest) (*tinycloud.Vm, error) {
@@ -29,6 +32,24 @@ func StartVm(req AwsSetupRequest) (*tinycloud.Vm, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	creds := credentials.NewStaticCredentialsProvider(
+		req.AccessKeyId,
+		req.SeacretAccessKey,
+		"",
+	)
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithRegion(req.Region),
+		config.WithCredentialsProvider(creds),
+	)
+    c := sts.NewFromConfig(cfg)
+    resp, err := c.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+	if err != nil {
+        return nil, err
+	}
+    req.AccountId = *resp.Account
+
 
 	runId, err := data.GetNewRunId(req.ProfileName)
 	if err != nil {
@@ -52,7 +73,8 @@ func StartVm(req AwsSetupRequest) (*tinycloud.Vm, error) {
 	data.AddPemKey(runId, sshKey)
 
 	var instanceId string
-	if instanceId, err = CreateEC2(runId, req.InstanceType, req.Iam, tag, client); err != nil {
+	if instanceId, err = CreateEC2(
+        runId, req.InstanceType, req.Iam, req.BucketName, req.AccountId, tag, client); err != nil {
 		return nil, err
 	}
 
