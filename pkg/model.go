@@ -108,6 +108,7 @@ type TaskDefinition struct {
 	DataOutPath   string
 	DNSName       string
 	SSHKey        []byte
+    BucketName string
 }
 
 type Vm struct {

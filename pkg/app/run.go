@@ -27,6 +27,7 @@ func Run(req *tinycloud.RunRequest) error {
 
 	// steup vm
 	var vm *tinycloud.Vm
+    var bucketName string
 	switch profile.Settings.ResolveCloudName() {
 	case "aws":
 		settings := profile.Settings.Aws
@@ -39,7 +40,7 @@ func Run(req *tinycloud.RunRequest) error {
 			Iam:              "ami-06c39ed6b42908a36", // todo from db defaults
 		}
 
-        bucketName, err := aws.CreateS3(req)
+        bucketName, err = aws.CreateS3(req)
         if err != nil {
 			return err
 		}
@@ -62,6 +63,8 @@ func Run(req *tinycloud.RunRequest) error {
 		SSHKey:        vm.SSHKey,
 		DNSName:       vm.DNSName,
 		DockerImageId: req.DockerImageId,
+        BucketName: bucketName,
+        DataOutPath: "/data",
 	})
 }
 
