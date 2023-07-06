@@ -74,13 +74,28 @@ func Run(task tinycloud.TaskDefinition) error {
 	client.Close()
     log.Printf("pushed docker image %s\n", imageName)
 
-    /*
-	script := fmt.Sprintf("docker load --input %s\n", imageName)
-	script += fmt.Sprintf("docker run %s\n", task.DockerImageId)
-	script += "exit\n"
-    */
 
-    script := "time"
+    script := "sudo yum install docker -y\n"
+    script += "sudo systemctl start docker\n"
+    script += "sudo usermod -a -G docker ec2-user\n"
+
+	script += fmt.Sprintf("sudo docker load --input %s\n", imageName)
+	script += fmt.Sprintf("sudo docker run --name tiny-cloud-container %s\n", task.DockerImageId)
+
+	script += "mkdir tiny_data\n"
+    script += "echo 'copy from docker to host...'\n"
+    script += fmt.Sprintf("sudo docker cp tiny-cloud-container:%s tiny_data/\n", task.DataOutPath)
+
+    script += "echo 'gzip...'\n"
+    script += "tar -czvf tiny_data.tar.gz tiny_data\n"
+
+    script += "echo 'copy to s3...'\n"
+    s3_path := fmt.Sprintf(`s3://%s/tiny_data_$(date +'%%Y%%m%%d%%H%%M%%S').tar.gz`, task.BucketName)
+    script += fmt.Sprintf(`aws s3 cp tiny_data.tar.gz "%s"`, s3_path)
+
+    script += "\necho 'all done'\nexit\n"
+
+    log.Printf("running script:\n %s\n", script)
 
 	// run docker image on vm
 	log.Println("create session")
@@ -103,10 +118,9 @@ func Run(task tinycloud.TaskDefinition) error {
 		return err
 	}
 
-	log.Println("running docker image")
+	log.Println("running script")
 	stdin.Write([]byte(script))
 	session.Wait()
-	log.Println("docker image started")
 
 	return nil
 }

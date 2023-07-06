@@ -2,9 +2,7 @@ package aws
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -30,14 +28,6 @@ type Ec2Api interface {
 }
 
 func CreateEC2(runId, instanceType, iam, bucketName, accountId string, tag types.Tag, api Ec2Api) (string, error) {
-    userData := `#!/bin/bash
-    echo "this is test" > test.txt
-    aws s3 cp test.txt s3://%s/test.txt
-    sudo shutdown -h now`
-    userData = fmt.Sprintf(userData, bucketName)
-    encodedUserData := base64.StdEncoding.EncodeToString([]byte(userData))
-
-    log.Printf("UserData: %s\n", userData)
 	ops := &ec2.RunInstancesInput{
 		MinCount:                          aws.Int32(1),
 		MaxCount:                          aws.Int32(1),
@@ -53,7 +43,6 @@ func CreateEC2(runId, instanceType, iam, bucketName, accountId string, tag types
         IamInstanceProfile: &types.IamInstanceProfileSpecification{
             Arn: aws.String(fmt.Sprintf("arn:aws:iam::%s:instance-profile/tiny-cloud", accountId)),
         },
-        UserData: aws.String(encodedUserData),
 	}
 
 	out, err := api.RunInstances(context.TODO(), ops, opsFn)
